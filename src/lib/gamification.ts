@@ -71,14 +71,30 @@ export const CHALLENGE_MAX_BONUS: Record<ChallengeId, number> = {
     nanophotonic: 300,
 };
 
-// ---- XP Calculation ----
 export function calculateChallengeResult(
     challengeId: ChallengeId,
     score: number, // 0 to 100
-    efficiency: number // 0 to 1 (how efficiently the challenge was solved)
+    efficiency: number, // 0 to 1 (how efficiently the challenge was solved)
+    timeSeconds: number = 0,
+    hintsUsed: number = 0
 ): ChallengeResult {
-    const baseXP = Math.round(CHALLENGE_BASE_XP[challengeId] * (score / 100));
-    const bonusXP = Math.round(CHALLENGE_MAX_BONUS[challengeId] * efficiency);
+    const rawBaseXP = Math.round(CHALLENGE_BASE_XP[challengeId] * (score / 100));
+    const rawBonusXP = Math.round(CHALLENGE_MAX_BONUS[challengeId] * efficiency);
+
+    // Time Penalty: -1% XP every 10s over 60s (max 40% penalty)
+    let timePenaltyFactor = 1;
+    if (timeSeconds > 60) {
+        const penalty = Math.min(0.4, ((timeSeconds - 60) / 10) * 0.01);
+        timePenaltyFactor = 1 - penalty;
+    }
+
+    // Hint Penalty: -15% XP per hint
+    let hintPenaltyFactor = Math.max(0.3, 1 - (hintsUsed * 0.15));
+
+    const combinedPenalty = timePenaltyFactor * hintPenaltyFactor;
+
+    const baseXP = Math.round(rawBaseXP * combinedPenalty);
+    const bonusXP = Math.round(rawBonusXP * combinedPenalty);
     const totalXP = baseXP + bonusXP;
 
     const achievements = checkAchievements(challengeId, score, efficiency);

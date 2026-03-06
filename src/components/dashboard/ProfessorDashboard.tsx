@@ -1,25 +1,92 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import type { UserProfile } from '@/lib/types';
+import { supabase } from '@/lib/supabase';
 import styles from '@/app/dashboard/page.module.css';
 
-// Admin mock data — will be populated from Supabase
-const METRICS = {
-    totalStudents: 42,
-    activeThisWeek: 35,
-    challengesCompleted: 104,
-    averageXp: 850,
-};
-
-const STUDENTS = [
-    { id: '1', name: 'María García', email: 'maria@example.com', level: 7, xp: 1850, completed: 4, lastActive: 'Hace 2 horas' },
-    { id: '2', name: 'Juan Pérez', email: 'juan@example.com', level: 6, xp: 1420, completed: 3, lastActive: 'Ayer' },
-    { id: '3', name: 'Lucas Rodríguez', email: 'lucas@example.com', level: 5, xp: 980, completed: 2, lastActive: 'Ayer' },
-    { id: '4', name: 'Ana Silva', email: 'ana@example.com', level: 4, xp: 720, completed: 1, lastActive: 'Hace 3 días' },
-];
+interface StudentData {
+    id: string;
+    display_name: string;
+    email: string;
+    level: number;
+    total_xp: number;
+    created_at: string;
+    challenges_completed: number;
+}
 
 export default function ProfessorDashboard({ profile }: { profile: UserProfile }) {
+    const [students, setStudents] = useState<StudentData[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+    const fetchStudents = async () => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            const res = await fetch('/api/admin/users', {
+                headers: { 'Authorization': `Bearer ${session.access_token}` },
+            });
+            const data = await res.json();
+
+            // For now, we mock challenges completed (it will come from progress table later)
+            const enrichedData = (data || []).map((s: any) => ({
+                ...s,
+                challenges_completed: 0 // Mock until we join with progress
+            }));
+
+            setStudents(enrichedData);
+        } catch (error) {
+            console.error('Error fetching students:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchStudents();
+    }, []);
+
+    const handleAction = async (userId: string, action: 'delete' | 'reset_xp' | 'reset_progress') => {
+        if (!confirm(`¿Estás seguro de que quieres realizar esta acción (${action})?`)) return;
+
+        setActionLoading(`${userId}-${action}`);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            if (action === 'delete') {
+                await fetch(`/api/admin/users?id=${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${session.access_token}` },
+                });
+            } else {
+                await fetch('/api/admin/users/reset', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ userId, action })
+                });
+            }
+            await fetchStudents();
+        } catch (error) {
+            console.error('Action failed', error);
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const metrics = {
+        totalStudents: students.length,
+        activeThisWeek: students.length, // Placeholder
+        challengesCompleted: students.reduce((acc, s) => acc + s.challenges_completed, 0),
+        averageXp: students.length > 0 ? Math.round(students.reduce((acc, s) => acc + s.total_xp, 0) / students.length) : 0,
+    };
+
     return (
         <div className={styles.dashboard}>
             <div className="container">
@@ -48,15 +115,11 @@ export default function ProfessorDashboard({ profile }: { profile: UserProfile }
                     <div className={styles.xpSection} style={{ gap: '10px', flexDirection: 'row', flexWrap: 'wrap' }}>
                         <div className="glass-card" style={{ padding: '16px', minWidth: '150px' }}>
                             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Alumnos Registrados</div>
-                            <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--neon-cyan)' }}>{METRICS.totalStudents}</div>
-                        </div>
-                        <div className="glass-card" style={{ padding: '16px', minWidth: '150px' }}>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Activos esta semana</div>
-                            <div style={{ fontSize: '2rem', fontWeight: 800, color: '#10b981' }}>{METRICS.activeThisWeek}</div>
+                            <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--neon-cyan)' }}>{metrics.totalStudents}</div>
                         </div>
                         <div className="glass-card" style={{ padding: '16px', minWidth: '150px' }}>
                             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Promedio XP</div>
-                            <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--neon-violet)' }}>{METRICS.averageXp}</div>
+                            <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--neon-violet)' }}>{metrics.averageXp}</div>
                         </div>
                     </div>
                 </motion.div>
@@ -72,7 +135,7 @@ export default function ProfessorDashboard({ profile }: { profile: UserProfile }
                     >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                             <h2 style={{ fontSize: '1.4rem' }}>👥 Seguimiento de Estudiantes</h2>
-                            <button className="btn btn-primary btn-sm">Exportar CSV</button>
+                            <button className="btn btn-primary btn-sm" onClick={fetchStudents}>↻ Actualizar</button>
                         </div>
 
                         <div style={{ overflowX: 'auto' }}>
@@ -82,32 +145,65 @@ export default function ProfessorDashboard({ profile }: { profile: UserProfile }
                                         <th style={{ padding: '12px', color: 'var(--text-secondary)' }}>Estudiante</th>
                                         <th style={{ padding: '12px', color: 'var(--text-secondary)' }}>Nivel</th>
                                         <th style={{ padding: '12px', color: 'var(--text-secondary)' }}>XP Total</th>
-                                        <th style={{ padding: '12px', color: 'var(--text-secondary)' }}>Desafíos</th>
-                                        <th style={{ padding: '12px', color: 'var(--text-secondary)' }}>Última Actividad</th>
+                                        <th style={{ padding: '12px', color: 'var(--text-secondary)' }}>Registro</th>
+                                        <th style={{ padding: '12px', color: 'var(--text-secondary)', textAlign: 'right' }}>Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {STUDENTS.map(student => (
-                                        <tr key={student.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                            <td style={{ padding: '16px 12px' }}>
-                                                <div style={{ fontWeight: 600 }}>{student.name}</div>
-                                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{student.email}</div>
-                                            </td>
-                                            <td style={{ padding: '16px 12px' }}>
-                                                <span style={{ background: 'rgba(0, 240, 255, 0.1)', color: 'var(--neon-cyan)', padding: '4px 8px', borderRadius: '12px', fontSize: '0.85rem' }}>
-                                                    Lvl {student.level}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: '16px 12px', fontWeight: 600 }}>{student.xp}</td>
-                                            <td style={{ padding: '16px 12px' }}>
-                                                {student.completed} / 4
-                                                <div style={{ width: '100px', height: '4px', background: 'var(--bg-tertiary)', borderRadius: '2px', marginTop: '6px' }}>
-                                                    <div style={{ width: `${(student.completed / 4) * 100}%`, height: '100%', background: 'var(--neon-cyan)', borderRadius: '2px' }} />
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: '16px 12px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{student.lastActive}</td>
-                                        </tr>
-                                    ))}
+                                    {loading ? (
+                                        <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center' }}>Cargando datos...</td></tr>
+                                    ) : students.length === 0 ? (
+                                        <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center' }}>No hay estudiantes registrados.</td></tr>
+                                    ) : (
+                                        students.map(student => (
+                                            <tr key={student.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                                <td style={{ padding: '16px 12px' }}>
+                                                    <div style={{ fontWeight: 600 }}>{student.display_name}</div>
+                                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{student.email}</div>
+                                                </td>
+                                                <td style={{ padding: '16px 12px' }}>
+                                                    <span style={{ background: 'rgba(0, 240, 255, 0.1)', color: 'var(--neon-cyan)', padding: '4px 8px', borderRadius: '12px', fontSize: '0.85rem' }}>
+                                                        Lvl {student.level}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '16px 12px', fontWeight: 600 }}>{student.total_xp}</td>
+                                                <td style={{ padding: '16px 12px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                                                    {new Date(student.created_at).toLocaleDateString()}
+                                                </td>
+                                                <td style={{ padding: '16px 12px', textAlign: 'right' }}>
+                                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                        <button
+                                                            onClick={() => handleAction(student.id, 'reset_xp')}
+                                                            disabled={actionLoading !== null}
+                                                            className="btn btn-ghost btn-sm"
+                                                            style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+                                                            title="Reiniciar XP a 0"
+                                                        >
+                                                            {actionLoading === `${student.id}-reset_xp` ? '...' : 'Reset XP'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleAction(student.id, 'reset_progress')}
+                                                            disabled={actionLoading !== null}
+                                                            className="btn btn-ghost btn-sm"
+                                                            style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+                                                            title="Reiniciar Progreso (Desafíos)"
+                                                        >
+                                                            {actionLoading === `${student.id}-reset_progress` ? '...' : 'Reset Progreso'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleAction(student.id, 'delete')}
+                                                            disabled={actionLoading !== null}
+                                                            className="btn btn-secondary btn-sm"
+                                                            style={{ fontSize: '0.75rem', padding: '4px 8px', borderColor: 'var(--neon-magenta)', color: 'var(--neon-magenta)' }}
+                                                            title="Eliminar Estudiante"
+                                                        >
+                                                            {actionLoading === `${student.id}-delete` ? '...' : 'Borrar'}
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
                         </div>

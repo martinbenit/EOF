@@ -11,9 +11,18 @@ import {
 } from '@/lib/physics/lorentz';
 import { calculateChallengeResult } from '@/lib/gamification';
 import { Particle, LorentzParams, ChallengeResult } from '@/lib/types';
+import { useAuth } from '@/lib/auth';
+import { useChallengeSession } from '@/hooks/useChallengeSession';
 import styles from './ChallengeSimulation.module.css';
 
+const LORENTZ_HINTS = [
+    "Recuerda la regla de la mano derecha: el pulgar indica la velocidad, el índice el campo magnético, y el dedo medio la fuerza (para cargas positivas).",
+    "Si el campo magnético Bz es positivo, saldrá de la pantalla. Si es negativo, entrará.",
+    "Para llegar al objetivo más rápido, mantén el campo magnético bajo hasta que estés alineado, o usa un campo fuerte para curvar rápidamente."
+];
+
 export default function LorentzChallenge() {
+    const { session, refreshProfile } = useAuth();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animRef = useRef<number>(0);
 
@@ -23,6 +32,8 @@ export default function LorentzChallenge() {
     const [completed, setCompleted] = useState(false);
     const [result, setResult] = useState<ChallengeResult | null>(null);
     const [hitTarget, setHitTarget] = useState(false);
+
+    const { timeSeconds, formattedTime, hintsUsed, showHint, requestHint, stopTimer, resetSession, totalHints } = useChallengeSession(LORENTZ_HINTS);
 
     const WIDTH = 800;
     const HEIGHT = 450;
@@ -180,13 +191,38 @@ export default function LorentzChallenge() {
         animRef.current = requestAnimationFrame(animate);
     }, []);
 
-    const finishChallenge = (p: Particle, hit: boolean) => {
+    const finishChallenge = async (p: Particle, hit: boolean) => {
         setRunning(false);
         setCompleted(true);
+        stopTimer();
+
         const dist = distanceToTarget(p, paramsRef.current.targetPosition);
         const { score, efficiency } = calculateLorentzScore(paramsRef.current, dist, hit);
-        const challengeResult = calculateChallengeResult('lorentz', score, efficiency);
+        const challengeResult = calculateChallengeResult('lorentz', score, efficiency, timeSeconds, hintsUsed);
         setResult(challengeResult);
+
+        // Save progress to DB
+        if (hit && session) {
+            try {
+                await fetch('/api/progress', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify({
+                        challengeId: 'lorentz',
+                        score,
+                        xpEarned: challengeResult.totalXP,
+                        timeSeconds,
+                        hintsUsed
+                    })
+                });
+                refreshProfile(); // update user XP in context
+            } catch (err) {
+                console.error('Failed to save progress:', err);
+            }
+        }
     };
 
     const resetChallenge = () => {
@@ -198,6 +234,7 @@ export default function LorentzChallenge() {
         const newParams = createDefaultLorentzParams();
         setParams(newParams);
         setParticle(createParticle(newParams));
+        resetSession();
     };
 
     useEffect(() => {
@@ -227,14 +264,26 @@ export default function LorentzChallenge() {
                 </div>
 
                 <div className={styles.canvasLegend}>
-                    <span><span style={{ color: '#00f0ff' }}>●</span> Partícula cargada</span>
-                    <span><span style={{ color: '#00ff88' }}>◎</span> Objetivo</span>
-                    <span><span style={{ color: '#ffd700' }}>→</span> Velocidad</span>
+                    <p style={{ margin: '0 0 10px 0', lineHeight: '1.4' }}>
+                        <strong>La Fuerza de Lorentz</strong> describe cómo una partícula cargada se mueve en presencia de un campo eléctrico y magnético.
+                        En este simulador, controlas un campo magnético tridimensional alineado en el eje Z (B_z) y la velocidad inicial (v_0) de un protón
+                        (carga positiva). Tu objetivo es predecir y manipular la trayectoria curva que adopta la partícula para que impacte el objetivo.
+                    </p>
+                    <div style={{ display: 'flex', gap: '15px', fontSize: '0.9rem' }}>
+                        <span><span style={{ color: '#00f0ff' }}>●</span> Protón (+1e)</span>
+                        <span><span style={{ color: '#00ff88' }}>◎</span> Objetivo</span>
+                        <span><span style={{ color: '#ffd700' }}>→</span> Velocidad</span>
+                    </div>
                 </div>
             </div>
 
             <div className={styles.controlPanel}>
-                <h3 className={styles.controlTitle}>⚙️ Controles</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h3 className={styles.controlTitle} style={{ margin: 0 }}>⚙️ Controles</h3>
+                    <div style={{ fontSize: '1.2rem', fontFamily: 'monospace', color: 'var(--neon-cyan)', background: 'rgba(0,0,0,0.3)', padding: '4px 12px', borderRadius: '4px' }}>
+                        ⏱ {formattedTime}
+                    </div>
+                </div>
 
                 <div className={styles.controlGroup}>
                     <label className={styles.controlLabel}>
@@ -316,6 +365,22 @@ export default function LorentzChallenge() {
                         </button>
                     )}
                 </div>
+
+                {!completed && (
+                    <div style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '15px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Pistas ({hintsUsed}/{totalHints})</span>
+                            <button className="btn btn-ghost btn-sm" onClick={requestHint} disabled={hintsUsed >= totalHints}>
+                                💡 Pedir Pista (-15% XP)
+                            </button>
+                        </div>
+                        {showHint && (
+                            <div style={{ background: 'rgba(255, 215, 0, 0.1)', border: '1px solid rgba(255,215,0,0.3)', padding: '10px', borderRadius: '8px', fontSize: '0.9rem', color: '#ffd700' }}>
+                                💡 {showHint}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {result && (
                     <motion.div

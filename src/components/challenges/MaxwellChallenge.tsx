@@ -14,13 +14,24 @@ import {
 } from '@/lib/physics/maxwell';
 import { calculateChallengeResult } from '@/lib/gamification';
 import { MaxwellParams, ChallengeResult } from '@/lib/types';
+import { useAuth } from '@/lib/auth';
+import { useChallengeSession } from '@/hooks/useChallengeSession';
 import styles from './ChallengeSimulation.module.css';
 
+const MAXWELL_HINTS = [
+    "Recuerda que para que exista Reflexión Interna Total, la luz debe pasar de un medio MÁS denso a uno MENOS denso (n1 > n2).",
+    "La Ley de Snell dicta que n1 * sen(θ1) = n2 * sen(θ2). Si sen(θ2) es mayor a 1, no hay refracción.",
+    "Busca un ángulo de incidencia donde el ángulo crítico θc = arcsen(n2/n1) sea alcanzado y apenas superado."
+];
+
 export default function MaxwellChallenge() {
+    const { session, refreshProfile } = useAuth();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [params, setParams] = useState<MaxwellParams>(createDefaultMaxwellParams());
     const [completed, setCompleted] = useState(false);
     const [result, setResult] = useState<ChallengeResult | null>(null);
+
+    const { timeSeconds, formattedTime, hintsUsed, showHint, requestHint, stopTimer, resetSession, totalHints } = useChallengeSession(MAXWELL_HINTS);
 
     const WIDTH = 800;
     const HEIGHT = 450;
@@ -187,23 +198,48 @@ export default function MaxwellChallenge() {
         drawFrame(ctx);
     }, [drawFrame]);
 
-    const submitAnswer = () => {
+    const submitAnswer = async () => {
         const angleRad = (params.incidenceAngle * Math.PI) / 180;
         const tirActive = isTotalInternalReflection(params.n1, params.n2, angleRad);
         const crit = criticalAngle(params.n1, params.n2);
         const critDeg = crit !== null ? (crit * 180) / Math.PI : 90;
         const anglePrecision = Math.abs(params.incidenceAngle - critDeg);
 
+        stopTimer();
+
         const { score, efficiency } = calculateMaxwellScore(params, tirActive, anglePrecision);
-        const challengeResult = calculateChallengeResult('maxwell', score, efficiency);
+        const challengeResult = calculateChallengeResult('maxwell', score, efficiency, timeSeconds, hintsUsed);
         setResult(challengeResult);
         setCompleted(true);
+
+        if (session) {
+            try {
+                await fetch('/api/progress', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify({
+                        challengeId: 'maxwell',
+                        score,
+                        xpEarned: challengeResult.totalXP,
+                        timeSeconds,
+                        hintsUsed
+                    })
+                });
+                refreshProfile();
+            } catch (err) {
+                console.error('Failed to save progress:', err);
+            }
+        }
     };
 
     const resetChallenge = () => {
         setParams(createDefaultMaxwellParams());
         setCompleted(false);
         setResult(null);
+        resetSession();
     };
 
     const crit = criticalAngle(params.n1, params.n2);
@@ -218,14 +254,26 @@ export default function MaxwellChallenge() {
                     <canvas ref={canvasRef} width={WIDTH} height={HEIGHT} className={styles.canvas} />
                 </div>
                 <div className={styles.canvasLegend}>
-                    <span>Medio superior: n₁ (más denso)</span>
-                    <span>Medio inferior: n₂ (menos denso)</span>
-                    <span>Línea punteada: normal</span>
+                    <p style={{ margin: '0 0 10px 0', lineHeight: '1.4' }}>
+                        <strong>Reflexión Interna Total y Ondas Evanescentes:</strong> Cuando la luz viaja de un medio más denso (n₁) a uno menos denso (n₂),
+                        el ángulo de refracción se aleja de la normal según la Ley de Snell. Si superas el <strong>Ángulo Crítico (θc)</strong>, toda la luz se refleja
+                        (no hay rayo transmitido). Tu objetivo es identificar exactamente ese ángulo límite y observar la decaída de la onda evanescente resultante.
+                    </p>
+                    <div style={{ display: 'flex', gap: '15px', fontSize: '0.9rem' }}>
+                        <span>Medio superior: n₁ (más denso)</span>
+                        <span>Medio inferior: n₂ (menos denso)</span>
+                        <span>〰️ Onda Evanescente</span>
+                    </div>
                 </div>
             </div>
 
             <div className={styles.controlPanel}>
-                <h3 className={styles.controlTitle}>⚙️ Controles</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h3 className={styles.controlTitle} style={{ margin: 0 }}>⚙️ Controles</h3>
+                    <div style={{ fontSize: '1.2rem', fontFamily: 'monospace', color: 'var(--neon-cyan)', background: 'rgba(0,0,0,0.3)', padding: '4px 12px', borderRadius: '4px' }}>
+                        ⏱ {formattedTime}
+                    </div>
+                </div>
 
                 <div className={styles.controlGroup}>
                     <label className={styles.controlLabel}>
@@ -313,6 +361,22 @@ export default function MaxwellChallenge() {
                         </button>
                     )}
                 </div>
+
+                {!completed && (
+                    <div style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '15px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Pistas ({hintsUsed}/{totalHints})</span>
+                            <button className="btn btn-ghost btn-sm" onClick={requestHint} disabled={hintsUsed >= totalHints}>
+                                💡 Pedir Pista (-15% XP)
+                            </button>
+                        </div>
+                        {showHint && (
+                            <div style={{ background: 'rgba(255, 215, 0, 0.1)', border: '1px solid rgba(255,215,0,0.3)', padding: '10px', borderRadius: '8px', fontSize: '0.9rem', color: '#ffd700' }}>
+                                💡 {showHint}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {result && (
                     <motion.div className={styles.resultPanel} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>

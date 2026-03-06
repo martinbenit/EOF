@@ -1,28 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { CHALLENGES } from '@/lib/challenges';
 import { getLevelFromXP, getLevelProgress, getLevelTitle, XP_TABLE } from '@/lib/gamification';
 import { useAuth } from '@/lib/auth';
 import type { UserProfile } from '@/lib/types';
+import { supabase } from '@/lib/supabase';
 import styles from '@/app/dashboard/page.module.css';
 
-// Demo progress tracking (will connect to DB later)
-const DEMO_PROGRESS: Record<string, { status: string; xpEarned: number; bestScore: number | null }> = {
-    lorentz: { status: 'completed', xpEarned: 280, bestScore: 87 },
-    maxwell: { status: 'in_progress', xpEarned: 170, bestScore: 62 },
-    quantum: { status: 'available', xpEarned: 0, bestScore: null },
-    nanophotonic: { status: 'locked', xpEarned: 0, bestScore: null },
-};
-
-const DEMO_LEADERBOARD = [
-    { rank: 1, name: 'María G.', xp: 1850, level: 7 },
-    { rank: 2, name: 'Juan P.', xp: 1420, level: 6 },
-    { rank: 3, name: 'Lucas R.', xp: 980, level: 5 },
-    { rank: 4, name: 'Ana S.', xp: 720, level: 4 },
-];
+// Demo leaderboad removed, we fetch from /api/leaderboard
 
 const statusConfig: Record<string, { label: string; className: string }> = {
     completed: { label: '✅ Completado', className: styles.statusCompleted },
@@ -32,10 +20,58 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 };
 
 export default function StudentDashboard({ profile, user }: { profile: UserProfile; user: any }) {
-    const { refreshProfile } = useAuth();
+    const { refreshProfile, session } = useAuth();
     const [isEditing, setIsEditing] = useState(false);
     const [editName, setEditName] = useState(profile.displayName);
     const [saving, setSaving] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const [progressData, setProgressData] = useState<Record<string, { status: string; xpEarned: number; bestScore: number | null }>>({});
+    const [leaderboardRes, setLeaderboardRes] = useState<any[]>([]);
+    const [loadingData, setLoadingData] = useState(true);
+
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                if (!session) return;
+                const headers = { 'Authorization': `Bearer ${session.access_token}` };
+
+                // Fetch progress
+                const pRes = await fetch('/api/progress', { headers });
+                const pData = await pRes.json();
+
+                const progMap: Record<string, { status: string; xpEarned: number; bestScore: number | null }> = {};
+                // Initialize defaults
+                ['lorentz', 'maxwell', 'quantum', 'nanophotonic'].forEach(id => {
+                    progMap[id] = { status: 'locked', xpEarned: 0, bestScore: null };
+                });
+                // Unlock first one
+                if (progMap['lorentz']) progMap['lorentz'].status = 'available';
+
+                if (Array.isArray(pData)) {
+                    pData.forEach(row => {
+                        progMap[row.challenge_id] = {
+                            status: row.status,
+                            xpEarned: row.xp_earned,
+                            bestScore: row.best_score,
+                        };
+                    });
+                }
+                setProgressData(progMap);
+
+                // Fetch leaderboard
+                const lRes = await fetch('/api/leaderboard', { headers });
+                const lData = await lRes.json();
+                setLeaderboardRes(lData.slice(0, 5)); // top 5
+            } catch (error) {
+                console.error('Failed fetching DB data:', error);
+            } finally {
+                setLoadingData(false);
+            }
+        };
+        loadData();
+    }, [session]);
 
     const level = getLevelFromXP(profile.totalXp);
     const progress = getLevelProgress(profile.totalXp);
@@ -62,6 +98,47 @@ export default function StudentDashboard({ profile, user }: { profile: UserProfi
         }
     };
 
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            setUploading(true);
+            const file = e.target.files?.[0];
+            if (!file) return;
+
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${profile.id}-${Math.random()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            // Upload directly to Supabase storage
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file, { upsert: true });
+
+            if (uploadError) throw uploadError;
+
+            // Get public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+
+            // Save to profile
+            const res = await fetch('/api/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: profile.id, avatarUrl: publicUrl }),
+            });
+
+            if (res.ok) {
+                await refreshProfile();
+            }
+        } catch (error) {
+            console.error('Error uploading avatar:', error);
+            alert('Error al subir la imagen. Verifica el tamaño o formato.');
+        } finally {
+            setUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
     return (
         <div className={styles.dashboard}>
             <div className="container">
@@ -73,8 +150,24 @@ export default function StudentDashboard({ profile, user }: { profile: UserProfi
                     transition={{ duration: 0.5 }}
                 >
                     <div className={styles.profile}>
-                        <div className={styles.avatar}>
-                            {profile.avatarUrl ? (
+                        <div
+                            className={styles.avatar}
+                            style={{ cursor: 'pointer', position: 'relative' }}
+                            onClick={() => fileInputRef.current?.click()}
+                            title="Cambiar foto de perfil"
+                        >
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleAvatarUpload}
+                                accept="image/*"
+                                style={{ display: 'none' }}
+                            />
+                            {uploading ? (
+                                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', borderRadius: '50%' }}>
+                                    ⏳
+                                </div>
+                            ) : profile.avatarUrl ? (
                                 <img src={profile.avatarUrl} alt={profile.displayName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
                             ) : (
                                 <span className={styles.avatarEmoji}>🧑‍🔬</span>
@@ -144,9 +237,11 @@ export default function StudentDashboard({ profile, user }: { profile: UserProfi
                     <div className={styles.challengeMapSection}>
                         <h2 className={styles.sectionTitle}>🗺️ Mapa de Desafíos</h2>
                         <div className={styles.challengeList}>
-                            {CHALLENGES.map((challenge, i) => {
-                                const prog = DEMO_PROGRESS[challenge.id];
-                                const status = statusConfig[prog.status];
+                            {loadingData ? (
+                                <div style={{ color: 'var(--text-secondary)' }}>Cargando desafíos...</div>
+                            ) : CHALLENGES.map((challenge, i) => {
+                                const prog = progressData[challenge.id] || { status: 'locked', xpEarned: 0, bestScore: null };
+                                const status = statusConfig[prog.status] || statusConfig['locked'];
                                 return (
                                     <motion.div
                                         key={challenge.id}
@@ -228,7 +323,9 @@ export default function StudentDashboard({ profile, user }: { profile: UserProfi
                         >
                             <h3 className={styles.cardTitle}>🏆 Top Ranking</h3>
                             <div className={styles.leaderboardList}>
-                                {DEMO_LEADERBOARD.map((entry) => (
+                                {loadingData ? (
+                                    <div style={{ color: 'var(--text-secondary)', padding: '12px 0' }}>Cargando ranking...</div>
+                                ) : leaderboardRes.map((entry) => (
                                     <div
                                         key={entry.rank}
                                         className={styles.leaderboardRow}
@@ -236,16 +333,19 @@ export default function StudentDashboard({ profile, user }: { profile: UserProfi
                                         <span className={styles.leaderboardRank}>
                                             {entry.rank <= 3 ? ['🥇', '🥈', '🥉'][entry.rank - 1] : `#${entry.rank}`}
                                         </span>
-                                        <span className={styles.leaderboardName}>{entry.name}</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                                            {entry.avatarUrl ? (
+                                                <img src={entry.avatarUrl} alt={entry.name} style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover' }} />
+                                            ) : (
+                                                <span style={{ fontSize: '1.2rem' }}>🧑‍🔬</span>
+                                            )}
+                                            <span className={styles.leaderboardName} style={{ fontWeight: entry.id === profile.id ? 'bold' : 'normal', color: entry.id === profile.id ? 'var(--neon-cyan)' : 'inherit' }}>
+                                                {entry.name} {entry.id === profile.id ? '(Tú)' : ''}
+                                            </span>
+                                        </div>
                                         <span className={styles.leaderboardXP}>{entry.xp} XP</span>
                                     </div>
                                 ))}
-                                {/* Current User Preview */}
-                                <div className={`${styles.leaderboardRow} ${styles.leaderboardRowHighlight}`}>
-                                    <span className={styles.leaderboardRank}>#5</span>
-                                    <span className={styles.leaderboardName}>{profile.displayName} (Tú)</span>
-                                    <span className={styles.leaderboardXP}>{profile.totalXp} XP</span>
-                                </div>
                             </div>
                             <Link href="/leaderboard" className="btn btn-ghost" style={{ width: '100%', marginTop: '12px' }}>
                                 Ver ranking completo →

@@ -13,13 +13,24 @@ import {
 } from '@/lib/physics/nanophotonic';
 import { calculateChallengeResult } from '@/lib/gamification';
 import { NanophotonicParams, ChallengeResult } from '@/lib/types';
+import { useAuth } from '@/lib/auth';
+import { useChallengeSession } from '@/hooks/useChallengeSession';
 import styles from './ChallengeSimulation.module.css';
 
+const NANO_HINTS = [
+    "Materiales como el Oro (Au) y Plata (Ag) son excelentes para resonancias plasmónicas, pero tienen diferentes rangos ideales de longitud de onda.",
+    "Busca sintonizar el tamaño de la partícula para que entre en resonancia con la longitud de onda seleccionada (espaciado cercano a λ/2).",
+    "El silicio (Si) es un dieléctrico de alto índice, útil para resonancias magnéticas, pero no genera plasmones de superficie fuertes como los metales."
+];
+
 export default function NanophotonicChallenge() {
+    const { session, refreshProfile } = useAuth();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [params, setParams] = useState<NanophotonicParams>(createDefaultNanophotonicParams());
     const [completed, setCompleted] = useState(false);
     const [result, setResult] = useState<ChallengeResult | null>(null);
+
+    const { timeSeconds, formattedTime, hintsUsed, showHint, requestHint, stopTimer, resetSession, totalHints } = useChallengeSession(NANO_HINTS);
 
     const WIDTH = 800;
     const HEIGHT = 450;
@@ -214,17 +225,41 @@ export default function NanophotonicChallenge() {
     const braggWl = braggCondition(params.particleSpacing, 1);
     const enhancement = nearFieldEnhancement(params.material, params.particleSize, params.wavelength);
 
-    const submitAnswer = () => {
+    const submitAnswer = async () => {
+        stopTimer();
         const { score, efficiency } = calculateNanophotonicScore(params);
-        const challengeResult = calculateChallengeResult('nanophotonic', score, efficiency);
+        const challengeResult = calculateChallengeResult('nanophotonic', score, efficiency, timeSeconds, hintsUsed);
         setResult(challengeResult);
         setCompleted(true);
+
+        if (session) {
+            try {
+                await fetch('/api/progress', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify({
+                        challengeId: 'nanophotonic',
+                        score,
+                        xpEarned: challengeResult.totalXP,
+                        timeSeconds,
+                        hintsUsed
+                    })
+                });
+                refreshProfile();
+            } catch (err) {
+                console.error('Failed to save progress:', err);
+            }
+        }
     };
 
     const resetChallenge = () => {
         setParams(createDefaultNanophotonicParams());
         setCompleted(false);
         setResult(null);
+        resetSession();
     };
 
     return (
@@ -234,14 +269,25 @@ export default function NanophotonicChallenge() {
                     <canvas ref={canvasRef} width={WIDTH} height={HEIGHT} className={styles.canvas} />
                 </div>
                 <div className={styles.canvasLegend}>
-                    <span>Gold circles: nanopartículas</span>
-                    <span>Red dashed: límite de difracción</span>
-                    <span>Glow: campo cercano amplificado</span>
+                    <p style={{ margin: '0 0 10px 0', lineHeight: '1.4' }}>
+                        La <strong>Plasmónica y las Metasuperficies</strong> aprovechan las oscilaciones de electrones libres en nanopartículas metálicas y la interferencia constructiva
+                        para confinar la luz en dimensiones mucho menores que su longitud de onda original. El desafío radica en elegir el material, el tamaño de la nanopartícula
+                        y la separación (periodo inter-partícula) correctos para lograr resonancia e intensificar el campo cercano (hotspots).
+                    </p>
+                    <div style={{ display: 'flex', gap: '15px', fontSize: '0.9rem' }}>
+                        <span>🔴/🟡 Hotspots Plasmónicos</span>
+                        <span>🔲 Elementos de la Metasuperficie</span>
+                    </div>
                 </div>
             </div>
 
             <div className={styles.controlPanel}>
-                <h3 className={styles.controlTitle}>⚙️ Controles</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h3 className={styles.controlTitle} style={{ margin: 0 }}>⚙️ Controles</h3>
+                    <div style={{ fontSize: '1.2rem', fontFamily: 'monospace', color: 'var(--neon-cyan)', background: 'rgba(0,0,0,0.3)', padding: '4px 12px', borderRadius: '4px' }}>
+                        ⏱ {formattedTime}
+                    </div>
+                </div>
 
                 <div className={styles.controlGroup}>
                     <label className={styles.controlLabel}>Material</label>
@@ -339,6 +385,22 @@ export default function NanophotonicChallenge() {
                         </button>
                     )}
                 </div>
+
+                {!completed && (
+                    <div style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '15px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Pistas ({hintsUsed}/{totalHints})</span>
+                            <button className="btn btn-ghost btn-sm" onClick={requestHint} disabled={hintsUsed >= totalHints}>
+                                💡 Pedir Pista (-15% XP)
+                            </button>
+                        </div>
+                        {showHint && (
+                            <div style={{ background: 'rgba(255, 215, 0, 0.1)', border: '1px solid rgba(255,215,0,0.3)', padding: '10px', borderRadius: '8px', fontSize: '0.9rem', color: '#ffd700' }}>
+                                💡 {showHint}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {result && (
                     <motion.div className={styles.resultPanel} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>

@@ -14,14 +14,25 @@ import {
 } from '@/lib/physics/quantum';
 import { calculateChallengeResult } from '@/lib/gamification';
 import { QuantumParams, ChallengeResult } from '@/lib/types';
+import { useAuth } from '@/lib/auth';
+import { useChallengeSession } from '@/hooks/useChallengeSession';
 import styles from './ChallengeSimulation.module.css';
 
+const QUANTUM_HINTS = [
+    "La energía de cada nivel depende de Eₙ = n²π²ħ²/(2mL²). Un pozo más ancho (L mayor) reduce la energía y junta los niveles.",
+    "Para emitir fotones de menor energía (rojo, infrarrojo), necesitas que las diferencias de energía entre niveles sean más pequeñas (pozo ancho).",
+    "Busca la transición entre n=2 y n=1 o n=3 y n=2 y ajusta el ancho L milímetro a milímetro hasta acercarte al Target."
+];
+
 export default function QuantumChallenge() {
+    const { session, refreshProfile } = useAuth();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [params, setParams] = useState<QuantumParams>(createDefaultQuantumParams());
     const [completed, setCompleted] = useState(false);
     const [result, setResult] = useState<ChallengeResult | null>(null);
     const [selectedTransition, setSelectedTransition] = useState<{ nUpper: number; nLower: number }>({ nUpper: 2, nLower: 1 });
+
+    const { timeSeconds, formattedTime, hintsUsed, showHint, requestHint, stopTimer, resetSession, totalHints } = useChallengeSession(QUANTUM_HINTS);
 
     const WIDTH = 800;
     const HEIGHT = 450;
@@ -222,11 +233,34 @@ export default function QuantumChallenge() {
     const transitions = getVisibleTransitions(params.wellWidth);
     const heis = heisenbergUncertainty(params.wellWidth);
 
-    const submitAnswer = () => {
+    const submitAnswer = async () => {
+        stopTimer();
         const { score, efficiency } = calculateQuantumScore(params, emittedWl);
-        const challengeResult = calculateChallengeResult('quantum', score, efficiency);
+        const challengeResult = calculateChallengeResult('quantum', score, efficiency, timeSeconds, hintsUsed);
         setResult(challengeResult);
         setCompleted(true);
+
+        if (session) {
+            try {
+                await fetch('/api/progress', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: JSON.stringify({
+                        challengeId: 'quantum',
+                        score,
+                        xpEarned: challengeResult.totalXP,
+                        timeSeconds,
+                        hintsUsed
+                    })
+                });
+                refreshProfile();
+            } catch (err) {
+                console.error('Failed to save progress:', err);
+            }
+        }
     };
 
     const resetChallenge = () => {
@@ -234,6 +268,7 @@ export default function QuantumChallenge() {
         setSelectedTransition({ nUpper: 2, nLower: 1 });
         setCompleted(false);
         setResult(null);
+        resetSession();
     };
 
     return (
@@ -243,14 +278,25 @@ export default function QuantumChallenge() {
                     <canvas ref={canvasRef} width={WIDTH} height={HEIGHT} className={styles.canvas} />
                 </div>
                 <div className={styles.canvasLegend}>
-                    <span>Pozo de potencial cuántico finito</span>
-                    <span>🎯 = Longitud de onda objetivo</span>
-                    <span>▼ = Emisión actual</span>
+                    <p style={{ margin: '0 0 10px 0', lineHeight: '1.4' }}>
+                        Un <strong>Pozo de Potencial Cuántico</strong> confina una partícula (ej. un electrón), restringiendo sus energías a valores discretos o "cuantizados" (Eₙ).
+                        Cuando un electrón "salta" de un nivel energético superior a uno inferior, emite un fotón cuya energía coincide con la diferencia (ΔE).
+                        En <em>Puntos Cuánticos</em> o materiales semiconductores, ajustar el ancho del pozo (L) permite sintonizar el color (longitud de onda λ) del fotón emitido.
+                    </p>
+                    <div style={{ display: 'flex', gap: '15px', fontSize: '0.9rem' }}>
+                        <span>🎯 Objetivo a Sintonizar</span>
+                        <span>▼ Fotón de Emisión Resultante</span>
+                    </div>
                 </div>
             </div>
 
             <div className={styles.controlPanel}>
-                <h3 className={styles.controlTitle}>⚙️ Controles</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h3 className={styles.controlTitle} style={{ margin: 0 }}>⚙️ Controles</h3>
+                    <div style={{ fontSize: '1.2rem', fontFamily: 'monospace', color: 'var(--neon-cyan)', background: 'rgba(0,0,0,0.3)', padding: '4px 12px', borderRadius: '4px' }}>
+                        ⏱ {formattedTime}
+                    </div>
+                </div>
 
                 <div className={styles.controlGroup}>
                     <label className={styles.controlLabel}>
@@ -330,6 +376,22 @@ export default function QuantumChallenge() {
                         </button>
                     )}
                 </div>
+
+                {!completed && (
+                    <div style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '15px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Pistas ({hintsUsed}/{totalHints})</span>
+                            <button className="btn btn-ghost btn-sm" onClick={requestHint} disabled={hintsUsed >= totalHints}>
+                                💡 Pedir Pista (-15% XP)
+                            </button>
+                        </div>
+                        {showHint && (
+                            <div style={{ background: 'rgba(255, 215, 0, 0.1)', border: '1px solid rgba(255,215,0,0.3)', padding: '10px', borderRadius: '8px', fontSize: '0.9rem', color: '#ffd700' }}>
+                                💡 {showHint}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {result && (
                     <motion.div className={styles.resultPanel} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
