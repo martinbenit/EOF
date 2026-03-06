@@ -1,0 +1,320 @@
+/* ============================================
+   Challenge Simulation — Shared Styles
+   ============================================ */
+
+.simulation {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+    width: 100%;
+}
+
+/* ---- Canvas Section ---- */
+.canvasSection {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.canvasWrapper {
+    position: relative;
+    width: 100%;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-glass);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.canvasLegend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    padding: 0 4px;
+}
+
+.hitOverlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2.5rem;
+    font-weight: 800;
+    text-shadow: 0 0 30px rgba(0, 255, 136, 0.6);
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* ---- Control Panel ---- */
+.controlPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border-glass);
+    border-radius: 16px;
+    align-self: start;
+    position: sticky;
+    top: 90px;
+}
+
+.controlTitle {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.controlGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.controlLabel {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+}
+
+.rangeLabels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
+.formulaBox {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px;
+    background: rgba(0, 240, 255, 0.04);
+    border: 1px solid rgba(0, 240, 255, 0.1);
+    border-radius: 12px;
+}
+
+.formulaLabel {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+
+.formula {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--neon-cyan);
+}
+
+.buttonGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* ---- Results Panel ---- */
+.resultPanel {
+    padding: 16px;
+    background: rgba(0, 255, 136, 0.04);
+    border: 1px solid rgba(0, 255, 136, 0.15);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.resultTitle {
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.resultFeedback {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.resultStats {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.resultStat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.resultStat span {
+    color: var(--text-secondary);
+}
+
+.resultStat strong {
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+}
+
+.achievements {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.achievementLabel {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* ---- Medium selector ---- */
+.mediumSelector {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.mediumSelector select {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-glass);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    transition: border-color var(--transition-fast);
+}
+
+.mediumSelector select:hover,
+.mediumSelector select:focus {
+    border-color: var(--neon-cyan);
+}
+
+/* ---- Info Grid ---- */
+.infoGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.infoItem {
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    border: 1px solid var(--border-subtle);
+}
+
+.infoItemLabel {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 2px;
+}
+
+.infoItemValue {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: block;
+}
+
+/* ---- Color Preview ---- */
+.colorPreview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-subtle);
+}
+
+.colorSwatch {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 12px currentColor;
+}
+
+.colorInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.colorLabel {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.colorValue {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* ---- Material Buttons ---- */
+.materialButtons {
+    display: flex;
+    gap: 6px;
+}
+
+.materialBtn {
+    flex: 1;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border-glass);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: var(--font-sans);
+}
+
+.materialBtn:hover {
+    border-color: var(--neon-cyan);
+    color: var(--text-primary);
+}
+
+.materialBtnActive {
+    background: rgba(0, 240, 255, 0.1);
+    border-color: var(--neon-cyan);
+    color: var(--neon-cyan);
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 900px) {
+    .simulation {
+        grid-template-columns: 1fr;
+    }
+
+    .controlPanel {
+        position: static;
+    }
+}

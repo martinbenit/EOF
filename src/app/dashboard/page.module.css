@@ -1,0 +1,374 @@
+.dashboard {
+    padding: 24px 0 80px;
+}
+
+/* ---- Profile Header ---- */
+.profileHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 32px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border-glass);
+    border-radius: 20px;
+    margin-bottom: 32px;
+    gap: 32px;
+    flex-wrap: wrap;
+}
+
+.profile {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(139, 92, 246, 0.15));
+    border: 2px solid var(--border-glow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.avatarEmoji {
+    font-size: 1.8rem;
+}
+
+.levelBadge {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--neon-cyan), var(--neon-violet));
+    color: var(--bg-primary);
+    font-size: 0.7rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--bg-primary);
+}
+
+.profileName {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.profileTitle {
+    font-size: 0.85rem;
+    color: var(--neon-cyan);
+    font-weight: 500;
+}
+
+.xpSection {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex: 1;
+    max-width: 500px;
+}
+
+.xpDisplay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+}
+
+.xpValue {
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--neon-gold), var(--neon-orange));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+}
+
+.xpLabel {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.xpBarContainer {
+    flex: 1;
+}
+
+.xpBarHeader {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.xpBarLevel {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.xpBarProgress {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
+/* ---- Main Grid ---- */
+.mainGrid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 24px;
+    align-items: start;
+}
+
+/* ---- Challenge Map ---- */
+.challengeMapSection {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.sectionTitle {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.challengeList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.challengeItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(16px);
+    border: 1px solid;
+    border-color: var(--border-glass);
+    border-radius: 16px;
+    text-decoration: none;
+    color: inherit;
+    transition: all var(--transition-base);
+    gap: 16px;
+}
+
+.challengeItem:hover {
+    background: var(--bg-card-hover);
+    transform: translateX(4px);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--accent, #00f0ff) 20%, transparent);
+}
+
+.challengeItemLocked {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.challengeItemLeft {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.challengeItemIcon {
+    font-size: 2rem;
+}
+
+.challengeItemUnit {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.challengeItemTitle {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 2px 0;
+}
+
+.challengeItemStatus {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.statusCompleted {
+    color: var(--neon-green);
+}
+
+.statusInProgress {
+    color: var(--neon-orange);
+}
+
+.statusAvailable {
+    color: var(--neon-cyan);
+}
+
+.statusLocked {
+    color: var(--text-muted);
+}
+
+.challengeItemRight {
+    text-align: right;
+}
+
+.bestScore {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.challengeItemXP {
+    font-size: 0.8rem;
+    font-family: var(--font-mono);
+    color: var(--neon-gold);
+    font-weight: 500;
+}
+
+/* ---- Sidebar ---- */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.statsCard,
+.leaderboardCard {
+    padding: 24px;
+}
+
+.cardTitle {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+}
+
+.statsList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.statsItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.statsItem:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.statsItemLabel {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.statsItemValue {
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+}
+
+/* ---- Leaderboard Preview ---- */
+.leaderboardList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.leaderboardRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    transition: background var(--transition-fast);
+}
+
+.leaderboardRow:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.leaderboardRowHighlight {
+    background: rgba(0, 240, 255, 0.06);
+    border: 1px solid rgba(0, 240, 255, 0.1);
+}
+
+.leaderboardRank {
+    width: 30px;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.leaderboardName {
+    flex: 1;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.leaderboardXP {
+    font-size: 0.8rem;
+    font-family: var(--font-mono);
+    color: var(--neon-gold);
+    font-weight: 500;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 1024px) {
+    .mainGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+}
+
+@media (max-width: 768px) {
+    .profileHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 20px;
+    }
+
+    .xpSection {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .sidebar {
+        grid-template-columns: 1fr;
+    }
+
+    .challengeItem {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .challengeItemRight {
+        text-align: left;
+        display: flex;
+        gap: 16px;
+    }
+}
