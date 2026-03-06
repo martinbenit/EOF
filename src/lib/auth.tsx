@@ -53,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 totalXp: data.total_xp,
                 level: data.level,
                 role: data.role,
+                onboardingCompleted: data.onboarding_completed,
                 createdAt: data.created_at,
             });
         }

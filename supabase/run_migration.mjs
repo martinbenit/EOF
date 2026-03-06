@@ -19,7 +19,13 @@ envContent.replace(/\r/g, '').split('\n').forEach(line => {
     }
 });
 
-const sql = readFileSync(join(__dirname, 'gamification_update.sql'), 'utf-8');
+const migrationFile = process.argv[2];
+if (!migrationFile) {
+    console.error('Please provide a migration file name (e.g. node run_migration.mjs onboarding_update.sql)');
+    process.exit(1);
+}
+
+const sql = readFileSync(join(__dirname, migrationFile), 'utf-8');
 
 const PROJECT_REF = env.SUPABASE_PROJECT_REF;
 const DB_PASSWORD = env.SUPABASE_DB_PASSWORD;
@@ -35,7 +41,7 @@ async function main() {
         await client.connect();
         console.log('✅ Connected to DB');
         await client.query(sql);
-        console.log('✅ Executed Gamification Update Schema');
+        console.log(`✅ Executed migration: ${migrationFile}`);
     } catch (e) {
         console.error('❌ SQL Error:', e);
     } finally {

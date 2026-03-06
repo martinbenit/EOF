@@ -11,6 +11,7 @@ export interface UserProfile {
   totalXp: number;
   level: number;
   role: 'student' | 'professor' | 'admin';
+  onboardingCompleted: boolean;
   createdAt: string;
 }
 
