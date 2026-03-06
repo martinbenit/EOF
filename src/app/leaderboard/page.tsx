@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import AuthGuard from '@/components/auth/AuthGuard';
 import styles from './page.module.css';
 
 // Demo leaderboard data (will come from Supabase)
@@ -21,107 +22,109 @@ export default function LeaderboardPage() {
     const maxXP = LEADERBOARD[0].xp;
 
     return (
-        <div className={styles.leaderboard}>
-            <div className="container">
-                <motion.div
-                    className={styles.header}
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                >
-                    <h1>🏆 Ranking Global</h1>
-                    <p className={styles.headerSubtitle}>
-                        Los mejores estudiantes de Electromagnetismo, Óptica y Fotónica
-                    </p>
-                </motion.div>
+        <AuthGuard>
+            <div className={styles.leaderboard}>
+                <div className="container">
+                    <motion.div
+                        className={styles.header}
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                    >
+                        <h1>🏆 Ranking Global</h1>
+                        <p className={styles.headerSubtitle}>
+                            Los mejores estudiantes de Electromagnetismo, Óptica y Fotónica
+                        </p>
+                    </motion.div>
 
-                {/* Podium */}
-                <motion.div
-                    className={styles.podium}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                >
-                    {[1, 0, 2].map((index) => {
-                        const entry = LEADERBOARD[index];
-                        const heights = [180, 220, 150];
-                        return (
-                            <motion.div
-                                key={entry.rank}
-                                className={`${styles.podiumEntry} ${index === 0 ? styles.podiumFirst : ''}`}
-                                initial={{ opacity: 0, y: 30 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.3 + index * 0.15 }}
-                            >
-                                <div className={styles.podiumAvatar}>
-                                    <span className={styles.podiumEmoji}>🧑‍🔬</span>
-                                    <span className={styles.podiumBadge}>{entry.badge}</span>
-                                </div>
-                                <span className={styles.podiumName}>{entry.name}</span>
-                                <span className={styles.podiumXP}>{entry.xp} XP</span>
-                                <div
-                                    className={styles.podiumBar}
-                                    style={{ height: `${heights[index === 0 ? 1 : index === 1 ? 0 : 2]}px` }}
-                                >
-                                    <span className={styles.podiumRank}>#{entry.rank}</span>
-                                </div>
-                            </motion.div>
-                        );
-                    })}
-                </motion.div>
-
-                {/* Full Table */}
-                <motion.div
-                    className={styles.tableWrapper}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                >
-                    <table className={styles.table}>
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Estudiante</th>
-                                <th>Nivel</th>
-                                <th>Desafíos</th>
-                                <th>XP</th>
-                                <th>Progreso</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {LEADERBOARD.map((entry, i) => (
-                                <motion.tr
+                    {/* Podium */}
+                    <motion.div
+                        className={styles.podium}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                    >
+                        {[1, 0, 2].map((index) => {
+                            const entry = LEADERBOARD[index];
+                            const heights = [180, 220, 150];
+                            return (
+                                <motion.div
                                     key={entry.rank}
-                                    className={`${styles.tableRow} ${entry.name === 'Estudiante Demo' ? styles.tableRowHighlight : ''}`}
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.5 + i * 0.05 }}
+                                    className={`${styles.podiumEntry} ${index === 0 ? styles.podiumFirst : ''}`}
+                                    initial={{ opacity: 0, y: 30 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.3 + index * 0.15 }}
                                 >
-                                    <td className={styles.rankCell}>
-                                        {entry.badge || `#${entry.rank}`}
-                                    </td>
-                                    <td className={styles.nameCell}>
-                                        <span className={styles.tableAvatar}>🧑‍🔬</span>
-                                        {entry.name}
-                                    </td>
-                                    <td>
-                                        <span className="badge badge-cyan">Lvl {entry.level}</span>
-                                    </td>
-                                    <td className={styles.challengeCell}>{entry.challenges}/4</td>
-                                    <td className={styles.xpCell}>{entry.xp}</td>
-                                    <td>
-                                        <div className={styles.progressBarSmall}>
-                                            <div
-                                                className={styles.progressBarSmallFill}
-                                                style={{ width: `${(entry.xp / maxXP) * 100}%` }}
-                                            />
-                                        </div>
-                                    </td>
-                                </motion.tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </motion.div>
+                                    <div className={styles.podiumAvatar}>
+                                        <span className={styles.podiumEmoji}>🧑‍🔬</span>
+                                        <span className={styles.podiumBadge}>{entry.badge}</span>
+                                    </div>
+                                    <span className={styles.podiumName}>{entry.name}</span>
+                                    <span className={styles.podiumXP}>{entry.xp} XP</span>
+                                    <div
+                                        className={styles.podiumBar}
+                                        style={{ height: `${heights[index === 0 ? 1 : index === 1 ? 0 : 2]}px` }}
+                                    >
+                                        <span className={styles.podiumRank}>#{entry.rank}</span>
+                                    </div>
+                                </motion.div>
+                            );
+                        })}
+                    </motion.div>
+
+                    {/* Full Table */}
+                    <motion.div
+                        className={styles.tableWrapper}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.5 }}
+                    >
+                        <table className={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Estudiante</th>
+                                    <th>Nivel</th>
+                                    <th>Desafíos</th>
+                                    <th>XP</th>
+                                    <th>Progreso</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {LEADERBOARD.map((entry, i) => (
+                                    <motion.tr
+                                        key={entry.rank}
+                                        className={`${styles.tableRow} ${entry.name === 'Estudiante Demo' ? styles.tableRowHighlight : ''}`}
+                                        initial={{ opacity: 0, x: -10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: 0.5 + i * 0.05 }}
+                                    >
+                                        <td className={styles.rankCell}>
+                                            {entry.badge || `#${entry.rank}`}
+                                        </td>
+                                        <td className={styles.nameCell}>
+                                            <span className={styles.tableAvatar}>🧑‍🔬</span>
+                                            {entry.name}
+                                        </td>
+                                        <td>
+                                            <span className="badge badge-cyan">Lvl {entry.level}</span>
+                                        </td>
+                                        <td className={styles.challengeCell}>{entry.challenges}/4</td>
+                                        <td className={styles.xpCell}>{entry.xp}</td>
+                                        <td>
+                                            <div className={styles.progressBarSmall}>
+                                                <div
+                                                    className={styles.progressBarSmallFill}
+                                                    style={{ width: `${(entry.xp / maxXP) * 100}%` }}
+                                                />
+                                            </div>
+                                        </td>
+                                    </motion.tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </motion.div>
+                </div>
             </div>
-        </div>
+        </AuthGuard>
     );
 }

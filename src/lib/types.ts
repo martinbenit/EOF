@@ -10,6 +10,7 @@ export interface UserProfile {
   avatarUrl: string | null;
   totalXp: number;
   level: number;
+  role: 'student' | 'professor' | 'admin';
   createdAt: string;
 }
 

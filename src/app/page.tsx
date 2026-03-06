@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { CHALLENGES } from '@/lib/challenges';
+import { useAuth } from '@/lib/auth';
 import styles from './page.module.css';
 
 const fadeUp = {
@@ -24,6 +25,8 @@ const scaleIn = {
 };
 
 export default function LandingPage() {
+  const { user, signInWithGoogle, loading } = useAuth();
+
   return (
     <div className={styles.landing}>
       {/* Hero Section */}
@@ -60,9 +63,19 @@ export default function LandingPage() {
           </motion.p>
 
           <motion.div className={styles.heroCTA} variants={fadeUp} custom={3}>
-            <Link href="/dashboard" className="btn btn-primary" style={{ padding: '14px 32px', fontSize: '1rem' }}>
-              🚀 Empezar Ahora
-            </Link>
+            {loading ? (
+              <div className="btn btn-primary" style={{ padding: '14px 32px', fontSize: '1rem', opacity: 0.7 }}>
+                Cargando...
+              </div>
+            ) : user ? (
+              <Link href="/dashboard" className="btn btn-primary" style={{ padding: '14px 32px', fontSize: '1rem' }}>
+                🚀 Ir a mi Dashboard
+              </Link>
+            ) : (
+              <button onClick={signInWithGoogle} className="btn btn-primary" style={{ padding: '14px 32px', fontSize: '1rem', cursor: 'pointer' }}>
+                🚀 Ingresar con Google
+              </button>
+            )}
             <Link href="/leaderboard" className="btn btn-secondary" style={{ padding: '14px 32px', fontSize: '1rem' }}>
               🏆 Ver Ranking
             </Link>
