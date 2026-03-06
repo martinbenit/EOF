@@ -9,8 +9,8 @@ import { dirname, join } from 'path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const sql = readFileSync(join(__dirname, 'schema.sql'), 'utf-8');
 
-const PROJECT_REF = 'lipuwpscytovmrapsixq';
-const DB_PASSWORD = 'qNms8iaxCjgLklih';
+const PROJECT_REF = process.env.SUPABASE_PROJECT_REF;
+const DB_PASSWORD = process.env.SUPABASE_DB_PASSWORD;
 
 // All possible Supabase pooler regions
 const REGIONS = [

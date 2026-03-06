@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://lipuwpscytovmrapsixq.supabase.co';
-const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpcHV3cHNjeXRvdm1yYXBzaXhxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mjc0ODc2MywiZXhwIjoyMDg4MzI0NzYzfQ.APvU8-R8EXqy52jVqGbm1zN82IKF4d8O7sQzz_aULH4';
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const fullSql = `
 -- Añadir columna de rol a profiles si no existe
@@ -15,8 +15,8 @@ CREATE POLICY "Progress is viewable by everyone" ON progress
 
 import pg from 'pg';
 
-const PROJECT_REF = 'lipuwpscytovmrapsixq';
-const DB_PASSWORD = 'qNms8iaxCjgLklih';
+const PROJECT_REF = process.env.SUPABASE_PROJECT_REF;
+const DB_PASSWORD = process.env.SUPABASE_DB_PASSWORD;
 const connStr = `postgresql://postgres:${DB_PASSWORD}@db.${PROJECT_REF}.supabase.co:5432/postgres`;
 
 async function main() {
