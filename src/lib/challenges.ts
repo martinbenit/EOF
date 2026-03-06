@@ -57,6 +57,32 @@ export const CHALLENGES: Challenge[] = [
         color: '#ffd700',
         glowColor: 'rgba(255, 215, 0, 0.3)',
     },
+    {
+        id: 'ion-pilot',
+        unit: 1,
+        title: 'Piloto de Iones',
+        subtitle: 'Escape Microfluídico',
+        description:
+            'Controlá un cañón de iones de sodio a través de un canal microfluídico. Aplicá la Regla de la Mano Derecha para inyectar campos magnéticos entrantes o salientes y lograr evitar las frágiles paredes.',
+        maxXp: 500,
+        unlockLevel: 1,
+        icon: '🕹️',
+        color: '#ff4d4d',
+        glowColor: 'rgba(255, 77, 77, 0.3)',
+    },
+    {
+        id: 'smes-forge',
+        unit: 1,
+        title: 'Forja Cuántica',
+        subtitle: 'Batería SMES',
+        description:
+            'Diseñá una bobina superconductora (SMES) para almacenar 1 MJ de energía magnética en el vacío. Optimizá radio e intensidad controlando el Potencial Vector A en el centro.',
+        maxXp: 800,
+        unlockLevel: 1,
+        icon: '🔋',
+        color: '#00ffaa',
+        glowColor: 'rgba(0, 255, 170, 0.3)',
+    },
 ];
 
 export function getChallengeById(id: string): Challenge | undefined {

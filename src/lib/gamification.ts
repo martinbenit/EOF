@@ -56,12 +56,13 @@ export function getLevelTitle(level: number): string {
     return LEVEL_TITLES[Math.min(level - 1, LEVEL_TITLES.length - 1)];
 }
 
-// ---- Challenge Base XP ----
 export const CHALLENGE_BASE_XP: Record<ChallengeId, number> = {
     lorentz: 200,
     maxwell: 250,
     quantum: 300,
     nanophotonic: 400,
+    'ion-pilot': 200,
+    'smes-forge': 400,
 };
 
 export const CHALLENGE_MAX_BONUS: Record<ChallengeId, number> = {
@@ -69,6 +70,8 @@ export const CHALLENGE_MAX_BONUS: Record<ChallengeId, number> = {
     maxwell: 200,
     quantum: 250,
     nanophotonic: 300,
+    'ion-pilot': 300,
+    'smes-forge': 400,
 };
 
 export function calculateChallengeResult(

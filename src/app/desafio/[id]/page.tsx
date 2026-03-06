@@ -8,6 +8,8 @@ import LorentzChallenge from '@/components/challenges/LorentzChallenge';
 import MaxwellChallenge from '@/components/challenges/MaxwellChallenge';
 import QuantumChallenge from '@/components/challenges/QuantumChallenge';
 import NanophotonicChallenge from '@/components/challenges/NanophotonicChallenge';
+import IonPilotChallenge from '@/components/challenges/IonPilotChallenge';
+import SMESForgeChallenge from '@/components/challenges/SMESForgeChallenge';
 import AuthGuard from '@/components/auth/AuthGuard';
 import styles from './page.module.css';
 
@@ -16,6 +18,8 @@ const challengeComponents: Record<string, React.ComponentType> = {
     maxwell: MaxwellChallenge,
     quantum: QuantumChallenge,
     nanophotonic: NanophotonicChallenge,
+    'ion-pilot': IonPilotChallenge,
+    'smes-forge': SMESForgeChallenge,
 };
 
 export default function ChallengePage({ params }: { params: Promise<{ id: string }> }) {
