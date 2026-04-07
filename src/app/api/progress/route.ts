@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase as supabaseServer } from '@/lib/supabase';
+import { calculateChallengeResult } from '@/lib/gamification';
+import type { ChallengeId } from '@/lib/types';
 
 export async function GET(request: Request) {
     try {
@@ -71,11 +73,7 @@ export async function POST(request: Request) {
         let totalXpDelta = xpEarned;
 
         if (currentProgress) {
-            // Update existing
             const newBestScore = Math.max(currentProgress.best_score || 0, score);
-            // Only add XP if it's the first time beating it or something?
-            // Actually, in gamification, maybe they get XP every time but diminishing, or we just add it.
-            // Let's just add it.
             await supabase.from('progress').update({
                 status: newStatus,
                 best_score: newBestScore,
@@ -84,7 +82,6 @@ export async function POST(request: Request) {
                 completed_at: new Date().toISOString()
             }).eq('id', currentProgress.id);
         } else {
-            // Insert new
             await supabase.from('progress').insert({
                 profile_id: user.id,
                 challenge_id: challengeId,
@@ -106,7 +103,6 @@ export async function POST(request: Request) {
         if (profile) {
             const newTotalXp = (profile.total_xp || 0) + totalXpDelta;
 
-            // Simple level up logic
             const XP_TABLE = [0, 100, 250, 500, 1000, 2000, 3500, 5500, 8000, 12000];
             let newLevel = profile.level || 1;
             while (newLevel < XP_TABLE.length && newTotalXp >= XP_TABLE[newLevel]) {
@@ -117,6 +113,35 @@ export async function POST(request: Request) {
                 total_xp: newTotalXp,
                 level: newLevel
             }).eq('id', user.id);
+        }
+
+        // 4. Persist achievements
+        try {
+            // Calculate achievements from game result
+            const challengeResult = calculateChallengeResult(challengeId as ChallengeId, score, score / 100, timeSeconds, hintsUsed);
+            const newAchievements = [...challengeResult.achievementsUnlocked];
+
+            // Check if this is their first challenge completion ever
+            const { data: allProgress } = await supabase
+                .from('progress')
+                .select('challenge_id')
+                .eq('profile_id', user.id)
+                .eq('status', 'completed');
+
+            if (allProgress && allProgress.length <= 1) {
+                newAchievements.push('first_challenge');
+            }
+
+            // Insert each achievement (ignore conflicts for already-unlocked ones)
+            for (const achKey of newAchievements) {
+                await supabase.from('achievements').upsert({
+                    profile_id: user.id,
+                    achievement_key: achKey,
+                    unlocked_at: new Date().toISOString()
+                }, { onConflict: 'profile_id,achievement_key', ignoreDuplicates: true });
+            }
+        } catch (achErr) {
+            console.error('Error saving achievements (non-fatal):', achErr);
         }
 
         return NextResponse.json({ success: true, xpAdded: xpEarned });

@@ -4,13 +4,11 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { CHALLENGES } from '@/lib/challenges';
-import { getLevelFromXP, getLevelProgress, getLevelTitle, XP_TABLE } from '@/lib/gamification';
+import { getLevelFromXP, getLevelProgress, getLevelTitle, XP_TABLE, ACHIEVEMENT_DEFINITIONS } from '@/lib/gamification';
 import { useAuth } from '@/lib/auth';
 import type { UserProfile } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 import styles from '@/app/dashboard/page.module.css';
-
-// Demo leaderboad removed, we fetch from /api/leaderboard
 
 const statusConfig: Record<string, { label: string; className: string }> = {
     completed: { label: '✅ Completado', className: styles.statusCompleted },
@@ -18,6 +16,58 @@ const statusConfig: Record<string, { label: string; className: string }> = {
     available: { label: '🟢 Disponible', className: styles.statusAvailable },
     locked: { label: '🔒 Bloqueado', className: styles.statusLocked },
 };
+
+/**
+ * Compute unlock status for each challenge based on unit rules:
+ * - Unit 2 challenges: all available from the start (student picks minimum 2)
+ * - Other units: sequential unlock — first challenge available, rest unlock when previous is completed
+ */
+function computeChallengeStatuses(
+    progressMap: Record<string, { status: string; xpEarned: number; bestScore: number | null }>
+): Record<string, { status: string; xpEarned: number; bestScore: number | null }> {
+    const result: Record<string, { status: string; xpEarned: number; bestScore: number | null }> = {};
+
+    // Group challenges by unit
+    const unitGroups: Record<number, typeof CHALLENGES> = {};
+    CHALLENGES.forEach(c => {
+        if (!unitGroups[c.unit]) unitGroups[c.unit] = [];
+        unitGroups[c.unit].push(c);
+    });
+
+    for (const [unitStr, challenges] of Object.entries(unitGroups)) {
+        const unit = parseInt(unitStr);
+
+        if (unit === 2) {
+            // Unit 2: all challenges available from the start
+            challenges.forEach(c => {
+                const prog = progressMap[c.id];
+                if (prog && (prog.status === 'completed' || prog.status === 'in_progress')) {
+                    result[c.id] = prog;
+                } else {
+                    result[c.id] = prog || { status: 'available', xpEarned: 0, bestScore: null };
+                }
+            });
+        } else {
+            // Other units: sequential unlock
+            let previousCompleted = true; // first challenge is always available
+            challenges.forEach(c => {
+                const prog = progressMap[c.id];
+                if (prog && prog.status === 'completed') {
+                    result[c.id] = prog;
+                    previousCompleted = true;
+                } else if (previousCompleted) {
+                    // This challenge is available (previous was completed or it's the first)
+                    result[c.id] = prog || { status: 'available', xpEarned: 0, bestScore: null };
+                    previousCompleted = false; // next ones should be locked unless this one is completed
+                } else {
+                    result[c.id] = { status: 'locked', xpEarned: 0, bestScore: null };
+                }
+            });
+        }
+    }
+
+    return result;
+}
 
 export default function StudentDashboard({ profile, user }: { profile: UserProfile; user: any }) {
     const { refreshProfile, session } = useAuth();
@@ -28,6 +78,7 @@ export default function StudentDashboard({ profile, user }: { profile: UserProfi
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [progressData, setProgressData] = useState<Record<string, { status: string; xpEarned: number; bestScore: number | null }>>({});
+    const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>([]);
     const [leaderboardRes, setLeaderboardRes] = useState<any[]>([]);
     const [loadingData, setLoadingData] = useState(true);
 
@@ -41,29 +92,36 @@ export default function StudentDashboard({ profile, user }: { profile: UserProfi
                 const pRes = await fetch('/api/progress', { headers });
                 const pData = await pRes.json();
 
-                const progMap: Record<string, { status: string; xpEarned: number; bestScore: number | null }> = {};
-                // Initialize defaults
-                ['lorentz', 'maxwell', 'quantum', 'nanophotonic'].forEach(id => {
-                    progMap[id] = { status: 'locked', xpEarned: 0, bestScore: null };
-                });
-                // Unlock first one
-                if (progMap['lorentz']) progMap['lorentz'].status = 'available';
+                const rawProgMap: Record<string, { status: string; xpEarned: number; bestScore: number | null }> = {};
 
                 if (Array.isArray(pData)) {
                     pData.forEach(row => {
-                        progMap[row.challenge_id] = {
+                        rawProgMap[row.challenge_id] = {
                             status: row.status,
                             xpEarned: row.xp_earned,
                             bestScore: row.best_score,
                         };
                     });
                 }
-                setProgressData(progMap);
+
+                // Compute unlock statuses
+                const computedProgress = computeChallengeStatuses(rawProgMap);
+                setProgressData(computedProgress);
+
+                // Fetch achievements
+                const { data: achievementsData } = await supabase
+                    .from('achievements')
+                    .select('achievement_key')
+                    .eq('profile_id', user.id);
+
+                if (achievementsData) {
+                    setUnlockedAchievements(achievementsData.map(a => a.achievement_key));
+                }
 
                 // Fetch leaderboard
                 const lRes = await fetch('/api/leaderboard', { headers });
                 const lData = await lRes.json();
-                setLeaderboardRes(lData.slice(0, 5)); // top 5
+                setLeaderboardRes(lData.slice(0, 5));
             } catch (error) {
                 console.error('Failed fetching DB data:', error);
             } finally {
@@ -71,12 +129,18 @@ export default function StudentDashboard({ profile, user }: { profile: UserProfi
             }
         };
         loadData();
-    }, [session]);
+    }, [session, user.id]);
 
     const level = getLevelFromXP(profile.totalXp);
     const progress = getLevelProgress(profile.totalXp);
     const title = getLevelTitle(level);
     const nextLevelXP = level < XP_TABLE.length ? XP_TABLE[level] : XP_TABLE[XP_TABLE.length - 1];
+
+    // Compute dynamic stats
+    const completedCount = Object.values(progressData).filter(p => p.status === 'completed').length;
+    const totalChallenges = CHALLENGES.length;
+    const totalAttempts = Object.values(progressData).reduce((sum, p) => sum + (p.bestScore !== null ? 1 : 0), 0);
+    const myRank = leaderboardRes.findIndex(e => e.id === profile.id) + 1;
 
     const handleSaveName = async () => {
         if (!editName.trim()) return;
@@ -108,19 +172,16 @@ export default function StudentDashboard({ profile, user }: { profile: UserProfi
             const fileName = `${profile.id}-${Math.random()}.${fileExt}`;
             const filePath = `${fileName}`;
 
-            // Upload directly to Supabase storage
             const { error: uploadError } = await supabase.storage
                 .from('avatars')
                 .upload(filePath, file, { upsert: true });
 
             if (uploadError) throw uploadError;
 
-            // Get public URL
             const { data: { publicUrl } } = supabase.storage
                 .from('avatars')
                 .getPublicUrl(filePath);
 
-            // Save to profile
             const res = await fetch('/api/profile', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -297,21 +358,90 @@ export default function StudentDashboard({ profile, user }: { profile: UserProfi
                             <div className={styles.statsList}>
                                 <div className={styles.statsItem}>
                                     <span className={styles.statsItemLabel}>Desafíos Completados</span>
-                                    <span className={styles.statsItemValue}>1 / 4</span>
+                                    <span className={styles.statsItemValue}>{completedCount} / {totalChallenges}</span>
                                 </div>
                                 <div className={styles.statsItem}>
-                                    <span className={styles.statsItemLabel}>Intentos Totales</span>
-                                    <span className={styles.statsItemValue}>5</span>
+                                    <span className={styles.statsItemLabel}>Intentos Registrados</span>
+                                    <span className={styles.statsItemValue}>{totalAttempts}</span>
                                 </div>
                                 <div className={styles.statsItem}>
                                     <span className={styles.statsItemLabel}>Logros Desbloqueados</span>
-                                    <span className={styles.statsItemValue}>2 / 8</span>
+                                    <span className={styles.statsItemValue}>{unlockedAchievements.length} / {ACHIEVEMENT_DEFINITIONS.length}</span>
                                 </div>
                                 <div className={styles.statsItem}>
                                     <span className={styles.statsItemLabel}>Posición en Ranking</span>
-                                    <span className={styles.statsItemValue}>#5</span>
+                                    <span className={styles.statsItemValue}>{myRank > 0 ? `#${myRank}` : '—'}</span>
                                 </div>
                             </div>
+                        </motion.div>
+
+                        {/* Achievements & Badges */}
+                        <motion.div
+                            className={`glass-card ${styles.statsCard}`}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.45 }}
+                        >
+                            <h3 className={styles.cardTitle}>🏆 Logros e Insignias</h3>
+                            {loadingData ? (
+                                <div style={{ color: 'var(--text-secondary)', padding: '12px 0' }}>Cargando logros...</div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {ACHIEVEMENT_DEFINITIONS.map((ach) => {
+                                        const isUnlocked = unlockedAchievements.includes(ach.key);
+                                        return (
+                                            <div
+                                                key={ach.key}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '12px',
+                                                    padding: '10px 12px',
+                                                    borderRadius: '12px',
+                                                    background: isUnlocked ? 'rgba(255, 215, 0, 0.06)' : 'rgba(255,255,255,0.02)',
+                                                    border: isUnlocked ? '1px solid rgba(255, 215, 0, 0.2)' : '1px solid rgba(255,255,255,0.05)',
+                                                    opacity: isUnlocked ? 1 : 0.45,
+                                                    transition: 'all 0.3s ease',
+                                                }}
+                                            >
+                                                <span style={{ fontSize: '1.5rem', filter: isUnlocked ? 'none' : 'grayscale(1)' }}>
+                                                    {ach.icon}
+                                                </span>
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <div style={{
+                                                        fontSize: '0.85rem',
+                                                        fontWeight: 600,
+                                                        color: isUnlocked ? 'var(--text-primary)' : 'var(--text-muted)',
+                                                        whiteSpace: 'nowrap',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                    }}>
+                                                        {ach.title}
+                                                    </div>
+                                                    <div style={{
+                                                        fontSize: '0.7rem',
+                                                        color: 'var(--text-muted)',
+                                                        whiteSpace: 'nowrap',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                    }}>
+                                                        {ach.description}
+                                                    </div>
+                                                </div>
+                                                <div style={{
+                                                    fontSize: '0.7rem',
+                                                    fontFamily: 'var(--font-mono)',
+                                                    color: isUnlocked ? 'var(--neon-gold)' : 'var(--text-muted)',
+                                                    fontWeight: 600,
+                                                    whiteSpace: 'nowrap',
+                                                }}>
+                                                    {isUnlocked ? '✅' : `+${ach.xpReward} XP`}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </motion.div>
 
                         {/* Leaderboard Preview */}
