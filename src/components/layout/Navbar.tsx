@@ -8,7 +8,7 @@ import styles from './Navbar.module.css';
 
 const navLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: '📊' },
-    { href: '/desafio/lorentz', label: 'Desafíos', icon: '🧪' },
+    { href: '/desafio', label: 'Desafíos', icon: '🧪' },
     { href: '/leaderboard', label: 'Ranking', icon: '🏆' },
 ];
 
