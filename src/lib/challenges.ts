@@ -83,6 +83,19 @@ export const CHALLENGES: Challenge[] = [
         color: '#00ffaa',
         glowColor: 'rgba(0, 255, 170, 0.3)',
     },
+    {
+        id: 'faraday',
+        unit: 2,
+        title: 'Latido Inductivo',
+        subtitle: 'El Nano-Generador',
+        description:
+            'Generá suficiente energía para cargar un nano-marcapasos moviendo un imán a través de una espira. Aplicá la Ley de Faraday (ε = −dΦ/dt) manteniendo el voltaje en la zona óptima mientras luchás contra la fricción de Lenz.',
+        maxXp: 400,
+        unlockLevel: 1,
+        icon: '❤️‍🔥',
+        color: '#ff4d6d',
+        glowColor: 'rgba(255, 77, 109, 0.3)',
+    },
 ];
 
 export function getChallengeById(id: string): Challenge | undefined {

@@ -63,6 +63,7 @@ export const CHALLENGE_BASE_XP: Record<ChallengeId, number> = {
     nanophotonic: 400,
     'ion-pilot': 200,
     'smes-forge': 400,
+    'faraday': 200,
 };
 
 export const CHALLENGE_MAX_BONUS: Record<ChallengeId, number> = {
@@ -72,6 +73,7 @@ export const CHALLENGE_MAX_BONUS: Record<ChallengeId, number> = {
     nanophotonic: 300,
     'ion-pilot': 300,
     'smes-forge': 400,
+    'faraday': 200,
 };
 
 export function calculateChallengeResult(
@@ -168,6 +170,13 @@ export const ACHIEVEMENT_DEFINITIONS: Achievement[] = [
         title: 'Más allá de Heisenberg',
         description: 'Superaste el Límite de Incertidumbre',
         icon: '🌀',
+        xpReward: 100,
+    },
+    {
+        key: 'faraday_master',
+        title: 'Bio-Electricista',
+        description: 'Cargaste el nano-marcapasos con precisión perfecta usando inducción electromagnética',
+        icon: '❤️‍🔥',
         xpReward: 100,
     },
 ];

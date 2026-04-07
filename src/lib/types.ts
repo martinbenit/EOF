@@ -16,7 +16,7 @@ export interface UserProfile {
 }
 
 // ---- Challenges ----
-export type ChallengeId = 'lorentz' | 'maxwell' | 'quantum' | 'nanophotonic' | 'ion-pilot' | 'smes-forge';
+export type ChallengeId = 'lorentz' | 'maxwell' | 'quantum' | 'nanophotonic' | 'ion-pilot' | 'smes-forge' | 'faraday';
 
 export type ChallengeStatus = 'locked' | 'available' | 'in_progress' | 'completed';
 
