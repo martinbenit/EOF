@@ -46,11 +46,18 @@ export default function FaradayChallenge() {
     const [hintsUsed, setHintsUsed] = useState(0);
     const [showHint, setShowHint] = useState<string | null>(null);
 
+    // Refs to avoid stale closures in startGame's setInterval
     const sliderRef = useRef(sliderValue);
     sliderRef.current = sliderValue;
 
     const stateRef = useRef(gameState);
     stateRef.current = gameState;
+
+    const sessionRef = useRef(session);
+    sessionRef.current = session;
+
+    const hintsUsedRef = useRef(hintsUsed);
+    hintsUsedRef.current = hintsUsed;
 
     const WIDTH = 800;
     const HEIGHT = 450;
@@ -292,31 +299,40 @@ export default function FaradayChallenge() {
         setCompleted(true);
         setWon(finalState.won);
 
+        // Use refs to get fresh values (avoids stale closure from startGame's useCallback)
+        const currentSession = sessionRef.current;
+        const currentHintsUsed = hintsUsedRef.current;
+
         const { score, efficiency } = calculateFaradayScore(finalState);
-        const challengeResult = calculateChallengeResult('faraday', score, efficiency, GAME_DURATION, hintsUsed);
+        const challengeResult = calculateChallengeResult('faraday', score, efficiency, GAME_DURATION, currentHintsUsed);
         setResult(challengeResult);
 
         // Save progress to DB
-        if (finalState.won && session) {
+        if (finalState.won && currentSession) {
             try {
-                await fetch('/api/progress', {
+                const res = await fetch('/api/progress', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session.access_token}`
+                        'Authorization': `Bearer ${currentSession.access_token}`
                     },
                     body: JSON.stringify({
                         challengeId: 'faraday',
                         score,
                         xpEarned: challengeResult.totalXP,
                         timeSeconds: GAME_DURATION,
-                        hintsUsed
+                        hintsUsed: currentHintsUsed
                     })
                 });
+                if (!res.ok) {
+                    console.error('Progress API error:', res.status, await res.text());
+                }
                 refreshProfile();
             } catch (err) {
                 console.error('Failed to save progress:', err);
             }
+        } else {
+            console.warn('Cannot save progress: won=', finalState.won, 'session=', !!currentSession);
         }
     };
 

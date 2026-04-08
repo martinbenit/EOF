@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase as supabaseServer } from '@/lib/supabase';
 import { calculateChallengeResult } from '@/lib/gamification';
+import { getChallengeById } from '@/lib/challenges';
 import type { ChallengeId } from '@/lib/types';
 
 export async function GET(request: Request) {
@@ -50,8 +51,33 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { challengeId, score, xpEarned, timeSeconds, hintsUsed } = body;
 
+        // 0. Auto-seed: ensure this challenge exists in the DB challenges table (FK constraint)
+        const { data: existingChallenge } = await supabase
+            .from('challenges')
+            .select('id')
+            .eq('id', challengeId)
+            .single();
+
+        if (!existingChallenge) {
+            const challengeDef = getChallengeById(challengeId);
+            if (challengeDef) {
+                console.log(`Auto-seeding challenge "${challengeId}" into DB...`);
+                await supabase.from('challenges').upsert({
+                    id: challengeDef.id,
+                    unit: challengeDef.unit,
+                    title: challengeDef.title,
+                    subtitle: challengeDef.subtitle || null,
+                    description: challengeDef.description || null,
+                    max_xp: challengeDef.maxXp,
+                    unlock_level: challengeDef.unlockLevel || 1,
+                    icon: challengeDef.icon || null,
+                    color: challengeDef.color || null,
+                }, { onConflict: 'id' });
+            }
+        }
+
         // 1. Record Attempt
-        await supabase.from('challenge_attempts').insert({
+        const { error: attemptError } = await supabase.from('challenge_attempts').insert({
             profile_id: user.id,
             challenge_id: challengeId,
             score,
@@ -60,6 +86,9 @@ export async function POST(request: Request) {
             hints_used: hintsUsed,
             end_time: new Date().toISOString()
         });
+        if (attemptError) {
+            console.error('Attempt insert error:', attemptError);
+        }
 
         // 2. Fetch current progress for this challenge
         const { data: currentProgress } = await supabase
