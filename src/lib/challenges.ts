@@ -122,6 +122,19 @@ export const CHALLENGES: Challenge[] = [
         color: '#ffc832',
         glowColor: 'rgba(255, 200, 50, 0.3)',
     },
+    {
+        id: 'fresnel',
+        unit: 2,
+        title: 'Escudo Invisible',
+        subtitle: 'Operación Fresnel',
+        description:
+            'Elegí el recubrimiento antirreflejo ideal para un panel solar de silicio minimizando la reflexión. Aplicá las ecuaciones de Fresnel: R = ((n₁−n₂)/(n₁+n₂))². El coating ideal tiene n = √(n_aire × n_Si).',
+        maxXp: 350,
+        unlockLevel: 1,
+        icon: '🛡️',
+        color: '#c8b4ff',
+        glowColor: 'rgba(200, 180, 255, 0.3)',
+    },
 ];
 
 export function getChallengeById(id: string): Challenge | undefined {

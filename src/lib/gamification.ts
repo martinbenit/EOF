@@ -66,6 +66,7 @@ export const CHALLENGE_BASE_XP: Record<ChallengeId, number> = {
     'faraday': 200,
     'poynting': 200,
     'snell': 250,
+    'fresnel': 150,
 };
 
 export const CHALLENGE_MAX_BONUS: Record<ChallengeId, number> = {
@@ -78,6 +79,7 @@ export const CHALLENGE_MAX_BONUS: Record<ChallengeId, number> = {
     'faraday': 200,
     'poynting': 200,
     'snell': 250,
+    'fresnel': 200,
 };
 
 export function calculateChallengeResult(
@@ -195,6 +197,13 @@ export const ACHIEVEMENT_DEFINITIONS: Achievement[] = [
         title: 'Francotirador Fotónico',
         description: 'Eliminaste el virus usando refracción precisa con la Ley de Snell',
         icon: '🎯',
+        xpReward: 100,
+    },
+    {
+        key: 'fresnel_master',
+        title: 'Alquimista de la Luz',
+        description: 'Minimizaste la reflexión usando el recubrimiento antirreflejo perfecto',
+        icon: '🛡️',
         xpReward: 100,
     },
 ];

@@ -13,6 +13,7 @@ import SMESForgeChallenge from '@/components/challenges/SMESForgeChallenge';
 import FaradayChallenge from '@/components/challenges/FaradayChallenge';
 import PoyntingChallenge from '@/components/challenges/PoyntingChallenge';
 import SnellChallenge from '@/components/challenges/SnellChallenge';
+import FresnelChallenge from '@/components/challenges/FresnelChallenge';
 import AuthGuard from '@/components/auth/AuthGuard';
 import styles from './page.module.css';
 
@@ -26,6 +27,7 @@ const challengeComponents: Record<string, React.ComponentType> = {
     'faraday': FaradayChallenge,
     'poynting': PoyntingChallenge,
     'snell': SnellChallenge,
+    'fresnel': FresnelChallenge,
 };
 
 export default function ChallengePage({ params }: { params: Promise<{ id: string }> }) {
