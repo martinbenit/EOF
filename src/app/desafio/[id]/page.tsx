@@ -11,6 +11,7 @@ import NanophotonicChallenge from '@/components/challenges/NanophotonicChallenge
 import IonPilotChallenge from '@/components/challenges/IonPilotChallenge';
 import SMESForgeChallenge from '@/components/challenges/SMESForgeChallenge';
 import FaradayChallenge from '@/components/challenges/FaradayChallenge';
+import PoyntingChallenge from '@/components/challenges/PoyntingChallenge';
 import AuthGuard from '@/components/auth/AuthGuard';
 import styles from './page.module.css';
 
@@ -22,6 +23,7 @@ const challengeComponents: Record<string, React.ComponentType> = {
     'ion-pilot': IonPilotChallenge,
     'smes-forge': SMESForgeChallenge,
     'faraday': FaradayChallenge,
+    'poynting': PoyntingChallenge,
 };
 
 export default function ChallengePage({ params }: { params: Promise<{ id: string }> }) {

@@ -64,6 +64,7 @@ export const CHALLENGE_BASE_XP: Record<ChallengeId, number> = {
     'ion-pilot': 200,
     'smes-forge': 400,
     'faraday': 200,
+    'poynting': 200,
 };
 
 export const CHALLENGE_MAX_BONUS: Record<ChallengeId, number> = {
@@ -74,6 +75,7 @@ export const CHALLENGE_MAX_BONUS: Record<ChallengeId, number> = {
     'ion-pilot': 300,
     'smes-forge': 400,
     'faraday': 200,
+    'poynting': 200,
 };
 
 export function calculateChallengeResult(
@@ -177,6 +179,13 @@ export const ACHIEVEMENT_DEFINITIONS: Achievement[] = [
         title: 'Bio-Electricista',
         description: 'Cargaste el nano-marcapasos con precisión perfecta usando inducción electromagnética',
         icon: '❤️‍🔥',
+        xpReward: 100,
+    },
+    {
+        key: 'poynting_master',
+        title: 'Señor de las Ondas',
+        description: 'Sincronizaste E y B con precisión perfecta para maximizar el Vector de Poynting',
+        icon: '⚡',
         xpReward: 100,
     },
 ];

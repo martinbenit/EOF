@@ -96,6 +96,19 @@ export const CHALLENGES: Challenge[] = [
         color: '#ff4d6d',
         glowColor: 'rgba(255, 77, 109, 0.3)',
     },
+    {
+        id: 'poynting',
+        unit: 2,
+        title: 'Sincronía Maxwell',
+        subtitle: 'Forjando el Rayo',
+        description:
+            'Alineá y sincronizá un Campo Eléctrico (E) y un Campo Magnético (B) para maximizar el Vector de Poynting S = E × B y transmitir energía a un nanobot. Lográ desfasaje 0° y ángulo 90° simultáneamente.',
+        maxXp: 400,
+        unlockLevel: 1,
+        icon: '⚡',
+        color: '#00c8ff',
+        glowColor: 'rgba(0, 200, 255, 0.3)',
+    },
 ];
 
 export function getChallengeById(id: string): Challenge | undefined {
