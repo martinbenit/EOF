@@ -65,6 +65,7 @@ export const CHALLENGE_BASE_XP: Record<ChallengeId, number> = {
     'smes-forge': 400,
     'faraday': 200,
     'poynting': 200,
+    'snell': 250,
 };
 
 export const CHALLENGE_MAX_BONUS: Record<ChallengeId, number> = {
@@ -76,6 +77,7 @@ export const CHALLENGE_MAX_BONUS: Record<ChallengeId, number> = {
     'smes-forge': 400,
     'faraday': 200,
     'poynting': 200,
+    'snell': 250,
 };
 
 export function calculateChallengeResult(
@@ -186,6 +188,13 @@ export const ACHIEVEMENT_DEFINITIONS: Achievement[] = [
         title: 'Señor de las Ondas',
         description: 'Sincronizaste E y B con precisión perfecta para maximizar el Vector de Poynting',
         icon: '⚡',
+        xpReward: 100,
+    },
+    {
+        key: 'snell_master',
+        title: 'Francotirador Fotónico',
+        description: 'Eliminaste el virus usando refracción precisa con la Ley de Snell',
+        icon: '🎯',
         xpReward: 100,
     },
 ];

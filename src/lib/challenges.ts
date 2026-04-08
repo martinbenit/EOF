@@ -109,6 +109,19 @@ export const CHALLENGES: Challenge[] = [
         color: '#00c8ff',
         glowColor: 'rgba(0, 200, 255, 0.3)',
     },
+    {
+        id: 'snell',
+        unit: 2,
+        title: 'Francotirador Fotónico',
+        subtitle: 'Laberinto de Snell',
+        description:
+            'Colocá bloques de distintos materiales (agua, vidrio, diamante) y ajustá el ángulo del láser para refractar el rayo y destruir un virus escondido detrás de tejido sano. Usá la Ley de Snell: n₁·sin(θ₁) = n₂·sin(θ₂).',
+        maxXp: 500,
+        unlockLevel: 1,
+        icon: '🎯',
+        color: '#ffc832',
+        glowColor: 'rgba(255, 200, 50, 0.3)',
+    },
 ];
 
 export function getChallengeById(id: string): Challenge | undefined {
