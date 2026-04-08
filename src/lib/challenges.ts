@@ -126,9 +126,9 @@ export const CHALLENGES: Challenge[] = [
         id: 'fresnel',
         unit: 2,
         title: 'Escudo Invisible',
-        subtitle: 'Operación Fresnel',
+        subtitle: 'El Enigma de Brewster',
         description:
-            'Elegí el recubrimiento antirreflejo ideal para un panel solar de silicio minimizando la reflexión. Aplicá las ecuaciones de Fresnel: R = ((n₁−n₂)/(n₁+n₂))². El coating ideal tiene n = √(n_aire × n_Si).',
+            'Ajustá el ángulo de incidencia y la polarización del láser para que penetre un chip nanofotónico con 0% de pérdida. El ángulo exacto depende del material. ¡Recordá que una polarización no permite acoplamiento perfecto!',
         maxXp: 350,
         unlockLevel: 1,
         icon: '🛡️',

@@ -1,11 +1,10 @@
 // ============================================
-// Escudo Invisible — Fresnel Equations Physics
+// Escudo Invisible — Fresnel Equations & Brewster Angle
 // ============================================
 
 export const N_AIR = 1.0;
-export const N_SILICON = 3.5;
 
-export interface CoatingMaterial {
+export interface PhotonicMaterial {
     id: string;
     name: string;
     n: number;
@@ -13,99 +12,89 @@ export interface CoatingMaterial {
     description: string;
 }
 
-export const COATING_MATERIALS: CoatingMaterial[] = [
-    { id: 'none',   name: 'Sin Recubrimiento', n: 1.0,  color: 'transparent', description: 'Sin capa protectora' },
-    { id: 'teflon', name: 'Teflón (PTFE)',     n: 1.3,  color: '#88ddaa',     description: 'Polímero fluorado, baja adherencia' },
-    { id: 'mgf2',   name: 'MgF₂',             n: 1.38, color: '#aaccff',     description: 'Fluoruro de magnesio, clásico antirreflejo' },
-    { id: 'sio2',   name: 'SiO₂',             n: 1.46, color: '#ccddff',     description: 'Dióxido de silicio, vidrio cuarzo' },
-    { id: 'zro2',   name: 'ZrO₂',             n: 1.55, color: '#ddccee',     description: 'Óxido de circonio, alta dureza' },
+export const PHOTONIC_MATERIALS: PhotonicMaterial[] = [
+    { id: 'polimero', name: 'Polímero', n: 1.33, color: '#ff77aa', description: 'Plástico transparente, bajo índice' },
+    { id: 'vidrio',   name: 'Vidrio',   n: 1.50, color: '#aaccff', description: 'Vidrio de ventana convencional' },
+    { id: 'nitruro',  name: 'Nitruro de Silicio', n: 2.00, color: '#44ee88', description: 'Usado en fotónica integrada' },
+    { id: 'diamante', name: 'Diamante', n: 2.42, color: '#eeccff', description: 'Estructura cristalina, índice muy alto' },
 ];
 
-export function getCoating(id: string): CoatingMaterial {
-    return COATING_MATERIALS.find(m => m.id === id) || COATING_MATERIALS[0];
+export function getMaterial(id: string): PhotonicMaterial {
+    return PHOTONIC_MATERIALS.find(m => m.id === id) || PHOTONIC_MATERIALS[0];
 }
 
-/**
- * Fresnel reflectance at normal incidence for a single interface:
- *   R = ((n1 - n2) / (n1 + n2))²
- */
-export function fresnelReflectance(n1: number, n2: number): number {
-    return ((n1 - n2) / (n1 + n2)) ** 2;
-}
+export type PolarizationType = 's' | 'p'; // 's' = perpendicular, 'p' = paralela
 
 /**
- * Calculate effective reflectance with or without a coating layer.
- *
- * Without coating: R = ((n_air - n_si) / (n_air + n_si))²
- *
- * With coating (quarter-wave approx for ideal thickness):
- * The ideal antireflection coating has n_coat = sqrt(n_air * n_si) ≈ 1.87
- *
- * For a single-layer coating at normal incidence (quarter-wave):
- *   R_eff = ((n_air * n_si - n_coat²) / (n_air * n_si + n_coat²))²
- *
- * This gives R_eff → 0 when n_coat = sqrt(n_air * n_si)
+ * Calculates Fresnel Reflectance and Transmittance
+ * based on incidence angle and polarization.
+ * @param n1 Refractive index of origin medium
+ * @param n2 Refractive index of destination medium
+ * @param thetaI_deg Incidence angle in degrees
+ * @param polarization Polarization type ('s' or 'p')
+ * @returns R (reflectance) and T (transmittance) as values between 0 and 1
  */
-export function calculateReflectance(coatingId: string): number {
-    const coating = getCoating(coatingId);
-
-    if (coatingId === 'none' || coating.n === N_AIR) {
-        // No coating: direct air-silicon interface
-        return fresnelReflectance(N_AIR, N_SILICON);
+export function calculateFresnel(n1: number, n2: number, thetaI_deg: number, polarization: PolarizationType): { R: number, T: number, thetaT_deg: number } {
+    const thetaI = thetaI_deg * Math.PI / 180;
+    
+    // Snell's Law: n1 * sin(thetaI) = n2 * sin(thetaT)
+    const sinThetaT = (n1 / n2) * Math.sin(thetaI);
+    
+    // Check for Total Internal Reflection (TIR) - although not possible from n1=1 to n2>1, good for general purpose
+    if (sinThetaT > 1 || sinThetaT < -1) {
+        return { R: 1, T: 0, thetaT_deg: 90 };
     }
-
-    // Quarter-wave coating model
-    const nCoat = coating.n;
-    const product = N_AIR * N_SILICON;  // 3.5
-    const nCoatSq = nCoat * nCoat;
-    const R = ((product - nCoatSq) / (product + nCoatSq)) ** 2;
-    return R;
+    
+    const thetaT = Math.asin(sinThetaT);
+    
+    const cosThetaI = Math.cos(thetaI);
+    const cosThetaT = Math.cos(thetaT);
+    
+    let R = 0;
+    
+    if (polarization === 's') {
+        const rs = (n1 * cosThetaI - n2 * cosThetaT) / (n1 * cosThetaI + n2 * cosThetaT);
+        R = rs * rs;
+    } else { // 'p'
+        const rp = (n2 * cosThetaI - n1 * cosThetaT) / (n2 * cosThetaI + n1 * cosThetaT);
+        R = rp * rp;
+    }
+    
+    return {
+        R,
+        T: 1 - R,
+        thetaT_deg: thetaT * 180 / Math.PI
+    };
 }
 
 /**
- * Get reflectance as percentage 0-100
+ * Calculates the exact Brewster angle where 'p' reflectance is zero.
  */
-export function getReflectancePercent(coatingId: string): number {
-    return Math.round(calculateReflectance(coatingId) * 10000) / 100;
+export function getBrewsterAngleDeg(n1: number, n2: number): number {
+    return Math.atan(n2 / n1) * 180 / Math.PI;
 }
 
 /**
- * Get the transmittance (useful energy captured)
+ * Check if the given values result in the win condition (R < 0.1%)
  */
-export function getTransmittancePercent(coatingId: string): number {
-    return Math.round((1 - calculateReflectance(coatingId)) * 10000) / 100;
+export function isBrewsterWinCondition(n1: number, n2: number, thetaI_deg: number, polarization: PolarizationType): boolean {
+    const { R } = calculateFresnel(n1, n2, thetaI_deg, polarization);
+    return R * 100 < 0.1;
 }
 
 /**
- * Check if this coating achieves the win condition (R < 5%)
+ * Calculate score based on how close reflectance is to 0
  */
-export function isWinCondition(coatingId: string): boolean {
-    return getReflectancePercent(coatingId) < 5;
-}
-
-/**
- * The ideal coating index: sqrt(n_air * n_silicon)
- */
-export const IDEAL_N = Math.sqrt(N_AIR * N_SILICON); // ≈ 1.871
-
-/**
- * Calculate score based on how close to ideal the coating is
- */
-export function calculateFresnelScore(coatingId: string): { score: number; efficiency: number } {
-    if (!isWinCondition(coatingId)) {
+export function calculateBrewsterScore(R: number, polarization: PolarizationType, isWin: boolean): { score: number; efficiency: number } {
+    if (!isWin) {
         return { score: 0, efficiency: 0 };
     }
 
-    const R = getReflectancePercent(coatingId);
-
-    // Score: lower reflectance = higher score
-    // R < 1% → 100%, R < 2% → 90%, R < 5% → 70%
-    let score: number;
-    if (R < 1) score = 100;
-    else if (R < 2) score = 90;
-    else if (R < 3) score = 80;
-    else if (R < 4) score = 75;
-    else score = 70;
+    // Since they hit R < 0.1%, they essentially get maximum score
+    let score = 100;
+    if (R * 100 < 0.01) score = 100;
+    else if (R * 100 < 0.05) score = 95;
+    else score = 90;
 
     return { score, efficiency: score / 100 };
 }

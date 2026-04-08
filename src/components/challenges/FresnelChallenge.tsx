@@ -3,22 +3,21 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
-    COATING_MATERIALS, getCoating,
-    getReflectancePercent, getTransmittancePercent,
-    isWinCondition, calculateFresnelScore,
-    N_AIR, N_SILICON, IDEAL_N,
+    PHOTONIC_MATERIALS, getMaterial,
+    calculateFresnel, isBrewsterWinCondition, calculateBrewsterScore,
+    N_AIR, PolarizationType, getBrewsterAngleDeg
 } from '@/lib/physics/fresnel';
 import { calculateChallengeResult } from '@/lib/gamification';
 import { ChallengeResult } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import styles from './ChallengeSimulation.module.css';
 
-const FRESNEL_HINTS = [
-    "La reflectancia a incidencia normal se calcula con R = ((n₁ - n₂)/(n₁ + n₂))². Sin recubrimiento, la pérdida es alta.",
-    "Un recubrimiento antirreflejo ideal tiene un índice de refracción n = √(n_aire × n_silicio). Calculá ese valor.",
-    "√(1.0 × 3.5) ≈ 1.87. El material cuyo n se acerque más a 1.87 minimizará la reflexión.",
-    "MgF₂ tiene n = 1.38, que es el más cercano a √3.5 entre las opciones disponibles. Probalo.",
-    "¡Seleccioná MgF₂! Con n = 1.38 lográs la menor reflectancia posible con estos materiales.",
+const BREWSTER_HINTS = [
+    "Las ecuaciones de Fresnel muestran que la luz con polarización perpendicular ('s') nunca tiene pérdida cero. Probá cambiar la polarización a 'Paralela (p)'.",
+    "Con polarización 'Paralela (p)', existe un ángulo de incidencia donde no hay luz reflejada. ¡Ese es el ángulo de Brewster!",
+    "El Ángulo de Brewster se calcula con la fórmula: θ = arctan(n₂ / n₁). Como aquí n₁=1, simplemente es θ = arctan(n₂).",
+    "Para el Vidrio (n=1.50), calculá arctan(1.50) en tu calculadora. Debería darte cerca de 56.3°.",
+    "Buscá el ángulo exacto moviendo el slider muy despacio. Cuando la pérdida baje de 0.1%, habrás logrado el acoplamiento perfecto.",
 ];
 
 export default function FresnelChallenge() {
@@ -26,11 +25,13 @@ export default function FresnelChallenge() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animRef = useRef<number>(0);
 
-    const [selectedCoating, setSelectedCoating] = useState('none');
+    const [selectedMaterialId, setSelectedMaterialId] = useState('polimero');
+    const [thetaI, setThetaI] = useState<number>(45.0);
+    const [polarization, setPolarization] = useState<PolarizationType>('s'); // Default to the trap
+    
     const [completed, setCompleted] = useState(false);
     const [won, setWon] = useState(false);
     const [result, setResult] = useState<ChallengeResult | null>(null);
-    const [attempts, setAttempts] = useState(0);
 
     const [hintsUsed, setHintsUsed] = useState(0);
     const [showHint, setShowHint] = useState<string | null>(null);
@@ -39,221 +40,223 @@ export default function FresnelChallenge() {
     sessionRef.current = session;
     const hintsUsedRef = useRef(hintsUsed);
     hintsUsedRef.current = hintsUsed;
-    const coatingRef = useRef(selectedCoating);
-    coatingRef.current = selectedCoating;
+    const materialRef = useRef(selectedMaterialId);
+    materialRef.current = selectedMaterialId;
+    const thetaIRef = useRef(thetaI);
+    thetaIRef.current = thetaI;
+    const polRef = useRef(polarization);
+    polRef.current = polarization;
 
     const WIDTH = 700;
     const HEIGHT = 500;
 
-    const reflectance = getReflectancePercent(selectedCoating);
-    const transmittance = getTransmittancePercent(selectedCoating);
-    const isWin = isWinCondition(selectedCoating);
+    const currentMaterial = getMaterial(selectedMaterialId);
+    const { R, T, thetaT_deg } = calculateFresnel(N_AIR, currentMaterial.n, thetaI, polarization);
+    const R_percent = R * 100;
+    const isWin = isBrewsterWinCondition(N_AIR, currentMaterial.n, thetaI, polarization);
+    
+    // Derived values for meters
+    const transmittanceStr = (T * 100).toFixed(2);
+    const reflectanceStr = R_percent.toFixed(2);
 
     // ---- Canvas Drawing ----
     const drawFrame = useCallback((ctx: CanvasRenderingContext2D, time: number) => {
         const W = WIDTH;
         const H = HEIGHT;
+        const hitX = W / 2;
+        const hitY = H / 2;
+        
         ctx.clearRect(0, 0, W, H);
 
-        // Background
-        const bg = ctx.createLinearGradient(0, 0, 0, H);
-        bg.addColorStop(0, 'rgba(5, 3, 20, 1)');
-        bg.addColorStop(1, 'rgba(10, 8, 30, 1)');
-        ctx.fillStyle = bg;
-        ctx.fillRect(0, 0, W, H);
-
-        const centerX = W / 2;
-        const coatingId = coatingRef.current;
-        const coating = getCoating(coatingId);
-        const R = getReflectancePercent(coatingId) / 100;
-        const T = 1 - R;
-        const hasCoating = coatingId !== 'none';
+        const mId = materialRef.current;
+        const m = getMaterial(mId);
+        const tI = thetaIRef.current;
+        const p = polRef.current;
+        
+        const { R, T, thetaT_deg: tT } = calculateFresnel(N_AIR, m.n, tI, p);
 
         // ---- Layout zones ----
-        const airZoneY = 0;
-        const coatingY = 200;
-        const coatingH = hasCoating ? 40 : 0;
-        const siliconY = coatingY + coatingH;
-        const siliconH = H - siliconY;
-
-        // ---- Air zone ----
-        ctx.fillStyle = 'rgba(20, 30, 60, 0.3)';
-        ctx.fillRect(0, airZoneY, W, coatingY);
-        ctx.fillStyle = 'rgba(100, 150, 200, 0.3)';
-        ctx.font = '11px "JetBrains Mono", monospace';
-        ctx.textAlign = 'left';
-        ctx.fillText(`AIRE  (n = ${N_AIR})`, 12, 20);
-
-        // ---- Coating layer ----
-        if (hasCoating) {
-            ctx.fillStyle = coating.color + '33';
-            ctx.fillRect(centerX - 140, coatingY, 280, coatingH);
-            ctx.strokeStyle = coating.color + '88';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(centerX - 140, coatingY, 280, coatingH);
-
-            ctx.fillStyle = coating.color;
-            ctx.font = 'bold 11px "JetBrains Mono", monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText(`${coating.name}  (n = ${coating.n})`, centerX, coatingY + coatingH / 2 + 4);
-        }
-
-        // ---- Silicon substrate ----
-        const siGrad = ctx.createLinearGradient(0, siliconY, 0, H);
-        siGrad.addColorStop(0, 'rgba(60, 60, 90, 0.8)');
-        siGrad.addColorStop(1, 'rgba(40, 40, 70, 0.9)');
-        ctx.fillStyle = siGrad;
-        ctx.fillRect(centerX - 140, siliconY, 280, siliconH);
-        ctx.strokeStyle = 'rgba(100, 100, 160, 0.4)';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(centerX - 140, siliconY, 280, siliconH);
-
-        // Silicon label
-        ctx.fillStyle = 'rgba(150, 150, 220, 0.7)';
-        ctx.font = 'bold 12px "JetBrains Mono", monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText(`PANEL DE SILICIO  (n = ${N_SILICON})`, centerX, siliconY + 30);
-
-        // Solar cell grid pattern
-        ctx.strokeStyle = 'rgba(100, 100, 180, 0.15)';
-        ctx.lineWidth = 1;
-        for (let gx = centerX - 130; gx < centerX + 140; gx += 20) {
-            ctx.beginPath(); ctx.moveTo(gx, siliconY + 5); ctx.lineTo(gx, H - 5); ctx.stroke();
-        }
-        for (let gy = siliconY + 20; gy < H; gy += 20) {
-            ctx.beginPath(); ctx.moveTo(centerX - 135, gy); ctx.lineTo(centerX + 135, gy); ctx.stroke();
-        }
-
-        // ---- Light rays ----
-        const wavePhase = time * 0.05;
-        const incidentThickness = 6;
-        const reflectedThickness = Math.max(1, incidentThickness * R * 2.5);
-        const transmittedThickness = Math.max(1, incidentThickness * T * 1.5);
-
-        // Surface point
-        const surfaceY = hasCoating ? coatingY : siliconY;
-        const hitX = centerX;
-        const hitY = surfaceY;
-
-        // --- Incident ray (yellow, from top) ---
-        ctx.shadowColor = '#ffd700';
-        ctx.shadowBlur = 12;
-        ctx.strokeStyle = 'rgba(255, 215, 0, 0.9)';
-        ctx.lineWidth = incidentThickness;
+        // 1. Air Zone (Top Half)
+        ctx.fillStyle = 'rgba(10, 15, 30, 1)';
+        ctx.fillRect(0, 0, W, hitY);
+        
+        // Air Grid
+        ctx.strokeStyle = 'rgba(100, 150, 255, 0.05)';
         ctx.beginPath();
-        ctx.moveTo(hitX, 0);
-        ctx.lineTo(hitX, hitY);
+        for(let gx=0; gx<W; gx+=40){ ctx.moveTo(gx, 0); ctx.lineTo(gx, hitY); }
+        for(let gy=0; gy<hitY; gy+=40){ ctx.moveTo(0, gy); ctx.lineTo(W, gy); }
         ctx.stroke();
 
-        // Wavefronts on incident ray
-        ctx.shadowBlur = 0;
-        ctx.strokeStyle = 'rgba(255, 255, 200, 0.3)';
+        ctx.fillStyle = 'rgba(150, 200, 255, 0.4)';
+        ctx.font = '12px "JetBrains Mono", monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(`AIRE (n₁ = ${N_AIR.toFixed(1)})`, 20, 30);
+
+        // 2. Photonic Chip Zone (Bottom Half)
+        const chipGrad = ctx.createLinearGradient(0, hitY, 0, H);
+        // Base color mixed with black
+        chipGrad.addColorStop(0, `${m.color}22`);
+        chipGrad.addColorStop(1, `${m.color}05`);
+        ctx.fillStyle = chipGrad;
+        ctx.fillRect(0, hitY, W, H / 2);
+
+        // Chip Grid
+        ctx.strokeStyle = `${m.color}15`;
+        ctx.beginPath();
+        for(let gx=0; gx<W; gx+=40){ ctx.moveTo(gx, hitY); ctx.lineTo(gx, H); }
+        for(let gy=hitY; gy<H; gy+=40){ ctx.moveTo(0, gy); ctx.lineTo(W, gy); }
+        ctx.stroke();
+
+        ctx.fillStyle = `${m.color}aa`;
+        ctx.fillText(`CHIP FOTÓNICO: ${m.name.toUpperCase()} (n₂ = ${m.n.toFixed(2)})`, 20, hitY + 30);
+
+        // ---- Interface line ----
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
         ctx.lineWidth = 1;
-        for (let wy = 0; wy < hitY; wy += 25) {
-            const wOff = (wy + wavePhase * 10) % 25;
-            if (wOff < 3) {
-                ctx.beginPath();
-                ctx.moveTo(hitX - 15, wy);
-                ctx.lineTo(hitX + 15, wy);
-                ctx.stroke();
-            }
-        }
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(0, hitY);
+        ctx.lineTo(W, hitY);
+        ctx.stroke();
 
-        // --- Reflected ray (red-orange, going up-right) ---
-        if (R > 0.005) {
-            const refEndX = hitX + 120;
-            const refEndY = Math.max(10, hitY - 150);
+        // ---- Normal line (vertical) ----
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.setLineDash([2, 4]);
+        ctx.beginPath();
+        ctx.moveTo(hitX, 0);
+        ctx.lineTo(hitX, H);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.font = '10px "JetBrains Mono", monospace';
+        ctx.fillText('Normal', hitX + 10, 20);
 
+        // ---- Ray rendering logic ----
+        const len = 350; // length of rays
+        
+        // Math coordinates: angles from the Normal.
+        // Incident (from Top Left)
+        const incRad = tI * Math.PI / 180;
+        const incDx = -Math.sin(incRad);
+        const incDy = -Math.cos(incRad);
+        const incStartX = hitX + incDx * len;
+        const incStartY = hitY + incDy * len;
+
+        // Reflected (to Top Right)
+        const refDx = Math.sin(incRad);
+        const refDy = -Math.cos(incRad);
+        const refEndX = hitX + refDx * len;
+        const refEndY = hitY + refDy * len;
+        
+        // Refracted (to Bottom Right)
+        const refrRad = tT * Math.PI / 180;
+        const refrDx = Math.sin(refrRad);
+        const refrDy = Math.cos(refrRad); // positive Y is down in canvas
+        const refrEndX = hitX + refrDx * len;
+        const refrEndY = hitY + refrDy * len;
+
+        // Visual styles map for Polarization
+        const rayColor = p === 's' ? '#ff3366' : '#33ccff';
+        const rayGlow = p === 's' ? 'rgba(255, 51, 102, 0.5)' : 'rgba(51, 204, 255, 0.5)';
+        
+        const baseThickness = 6;
+        const wavePhase = (time * 2) % 20;
+
+        // 1. Incident Ray
+        ctx.shadowColor = rayColor;
+        ctx.shadowBlur = 15;
+        ctx.strokeStyle = rayColor;
+        ctx.lineWidth = baseThickness;
+        ctx.beginPath();
+        ctx.moveTo(incStartX, incStartY);
+        ctx.lineTo(hitX, hitY);
+        ctx.stroke();
+        
+        // Indicador de ángulo de incidencia
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.beginPath();
+        ctx.arc(hitX, hitY, 60, -Math.PI/2 - incRad, -Math.PI/2, false);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.fillText(`θi=${tI.toFixed(1)}°`, hitX - 30 * Math.sin(incRad/2) - 30, hitY - 60 * Math.cos(incRad/2) - 10);
+
+        // 2. Refracted Ray
+        const transThickness = Math.max(1, baseThickness * T);
+        ctx.shadowColor = rayColor;
+        ctx.shadowBlur = 10 * T;
+        ctx.strokeStyle = `rgba(${p==='s'?'255,51,102':'51,204,255'}, ${0.3 + 0.7 * T})`;
+        ctx.lineWidth = transThickness;
+        ctx.beginPath();
+        ctx.moveTo(hitX, hitY);
+        ctx.lineTo(refrEndX, refrEndY);
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.beginPath();
+        ctx.arc(hitX, hitY, 50, Math.PI/2 - refrRad, Math.PI/2, true);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.fillText(`θt=${tT.toFixed(1)}°`, hitX + 20 * Math.sin(refrRad/2) + 10, hitY + 50 * Math.cos(refrRad/2) + 15);
+
+        // 3. Reflected Ray
+        if (R > 0.0005) {
+            const refThickness = Math.max(1, baseThickness * (R * 2.5)); // Exaggerate slightly for visibility
             ctx.shadowColor = '#ff6644';
-            ctx.shadowBlur = 8 * R;
-            ctx.strokeStyle = `rgba(255, 100, 68, ${Math.min(0.9, R * 2 + 0.1)})`;
-            ctx.lineWidth = reflectedThickness;
+            ctx.shadowBlur = 15 * R;
+            ctx.strokeStyle = `rgba(255, 102, 68, ${0.2 + 0.8 * R})`;
+            ctx.lineWidth = refThickness;
             ctx.beginPath();
             ctx.moveTo(hitX, hitY);
             ctx.lineTo(refEndX, refEndY);
             ctx.stroke();
+            
+            // Reflected particle effect passing through
             ctx.shadowBlur = 0;
-
-            // Reflected label
-            ctx.fillStyle = `rgba(255, 100, 68, ${Math.min(0.9, R * 2 + 0.2)})`;
-            ctx.font = 'bold 11px "JetBrains Mono", monospace';
-            ctx.textAlign = 'left';
-            ctx.fillText(`Reflejado: ${(R * 100).toFixed(1)}%`, refEndX + 5, refEndY + 5);
-
-            // Loss indicator
-            if (R > 0.1) {
-                ctx.fillStyle = 'rgba(255, 68, 68, 0.7)';
-                ctx.font = 'bold 13px "Inter", sans-serif';
-                ctx.fillText('⚠ LUZ PERDIDA', refEndX + 5, refEndY + 22);
+            for(let i=0; i<3; i++) {
+                const pr = ((time * 3 + i * 100) % len) / len; // 0 to 1
+                if (pr < 0.1) continue;
+                const px = hitX + refDx * (len * pr);
+                const py = hitY + refDy * (len * pr);
+                ctx.fillStyle = `rgba(255, 150, 100, ${1 - pr})`;
+                ctx.beginPath();
+                ctx.arc(px, py, refThickness * 0.8, 0, Math.PI * 2);
+                ctx.fill();
             }
+
+            // Reflected ray label
+            ctx.fillStyle = `rgba(255, 100, 68, ${0.5 + 0.5 * R})`;
+            ctx.font = 'bold 12px "Inter", sans-serif';
+            ctx.fillText(`Pérdida ${(R * 100).toFixed(2)}%`, hitX + refDx * 150 + 10, hitY + refDy * 150);
         }
 
-        // --- Transmitted ray (green, going down into silicon) ---
-        ctx.shadowColor = '#00ff88';
-        ctx.shadowBlur = 10 * T;
-        ctx.strokeStyle = `rgba(0, 255, 136, ${Math.min(0.9, T + 0.1)})`;
-        ctx.lineWidth = transmittedThickness;
+        // ---- Sparkling hit point ----
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = rayColor;
+        ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.moveTo(hitX, hitY + (hasCoating ? coatingH : 0));
-        ctx.lineTo(hitX, Math.min(H - 20, hitY + (hasCoating ? coatingH : 0) + 200));
-        ctx.stroke();
+        ctx.arc(hitX, hitY, 4 + Math.sin(time * 0.1)*2, 0, Math.PI*2);
+        ctx.fill();
         ctx.shadowBlur = 0;
 
-        // Transmitted label
-        ctx.fillStyle = `rgba(0, 255, 136, ${Math.min(0.9, T + 0.1)})`;
-        ctx.font = 'bold 11px "JetBrains Mono", monospace';
-        ctx.textAlign = 'left';
-        ctx.fillText(`Transmitido: ${(T * 100).toFixed(1)}%`, hitX + 15, hitY + (hasCoating ? coatingH : 0) + 40);
-
-        ctx.fillStyle = 'rgba(0, 255, 136, 0.5)';
-        ctx.font = '10px "JetBrains Mono", monospace';
-        ctx.fillText('→ Energía capturada', hitX + 15, hitY + (hasCoating ? coatingH : 0) + 56);
-
-        // ---- Surface interaction sparkle ----
-        const sparkAlpha = Math.sin(time * 0.08) * 0.3 + 0.5;
-        ctx.fillStyle = `rgba(255, 255, 200, ${sparkAlpha})`;
-        ctx.beginPath();
-        ctx.arc(hitX, hitY, 5, 0, Math.PI * 2);
-        ctx.fill();
-
-        // ---- Interface label ----
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([4, 4]);
-        ctx.beginPath();
-        ctx.moveTo(centerX - 200, hitY);
-        ctx.lineTo(centerX - 150, hitY);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(centerX + 150, hitY);
-        ctx.lineTo(centerX + 200, hitY);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-        ctx.font = '10px "JetBrains Mono", monospace';
-        ctx.textAlign = 'right';
-        ctx.fillText('Interfaz ─', centerX - 155, hitY + 4);
-
-        // ---- Win celebration ----
-        if (R < 0.05) {
-            for (let i = 0; i < 12; i++) {
-                const sparkAngle = (time * 0.015 + i * Math.PI / 6) % (Math.PI * 2);
-                const sparkR = 60 + Math.sin(time * 0.008 + i) * 15;
-                const sx = hitX + Math.cos(sparkAngle) * sparkR;
-                const sy = (hitY + (hasCoating ? coatingH / 2 : 0)) + Math.sin(sparkAngle) * sparkR * 0.6;
-                ctx.fillStyle = `rgba(0, 255, 136, ${Math.sin(time * 0.006 + i) * 0.3 + 0.3})`;
+        // ---- Win sequence override ----
+        if (R < 0.001) { // R < 0.1% essentially perfect Brewster matches
+            ctx.fillStyle = `rgba(0, 255, 136, ${Math.abs(Math.sin(time * 0.05)) * 0.15})`;
+            ctx.fillRect(0, 0, W, H);
+            
+            for(let i=0; i<8; i++){
+                const ang = (time * 0.02 + i * Math.PI/4);
+                const rx = hitX + Math.cos(ang) * 40;
+                const ry = hitY + Math.sin(ang) * 40;
+                ctx.fillStyle = '#00ff88';
                 ctx.beginPath();
-                ctx.arc(sx, sy, 2, 0, Math.PI * 2);
+                ctx.arc(rx, ry, 2, 0, Math.PI*2);
                 ctx.fill();
             }
         }
-
-        // ---- Formula display ----
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.font = '11px "JetBrains Mono", monospace';
-        ctx.textAlign = 'right';
-        ctx.fillText('R = ((n₁ - n₂)/(n₁ + n₂))²', W - 12, H - 12);
+        
     }, []);
 
     // Animation loop
@@ -273,17 +276,11 @@ export default function FresnelChallenge() {
         return () => cancelAnimationFrame(animRef.current);
     }, [drawFrame]);
 
-    // ---- Apply coating ----
-    const applyCoating = (coatingId: string) => {
-        if (completed) return;
-        setSelectedCoating(coatingId);
-        setAttempts(prev => prev + 1);
-    };
-
     useEffect(() => {
         if (completed || !isWin) return;
-        // Auto-win when the right coating is selected
-        finishGame();
+        // The win is detected. We should delay just slightly.
+        const tId = setTimeout(() => finishGame(), 1000);
+        return () => clearTimeout(tId);
     }, [isWin, completed]);
 
     const finishGame = async () => {
@@ -292,10 +289,15 @@ export default function FresnelChallenge() {
 
         const currentSession = sessionRef.current;
         const currentHints = hintsUsedRef.current;
-        const coatingId = coatingRef.current;
+        
+        // R from refs to get snapshot at time of win
+        const m = getMaterial(materialRef.current);
+        const { R } = calculateFresnel(N_AIR, m.n, thetaIRef.current, polRef.current);
 
-        const { score, efficiency } = calculateFresnelScore(coatingId);
+        const { score, efficiency } = calculateBrewsterScore(R, polRef.current, true);
         const challengeResult = calculateChallengeResult('fresnel', score, efficiency, 0, currentHints);
+        // Add specific badge
+        challengeResult.achievementsUnlocked = ["Maestro de la Luz"];
         setResult(challengeResult);
 
         if (currentSession) {
@@ -311,7 +313,8 @@ export default function FresnelChallenge() {
                         score,
                         xpEarned: challengeResult.totalXP,
                         timeSeconds: 0,
-                        hintsUsed: currentHints
+                        hintsUsed: currentHints,
+                        bonusData: { badge: "Maestro de la Luz" }
                     })
                 });
                 if (!res.ok) console.error('Progress API error:', res.status);
@@ -323,25 +326,23 @@ export default function FresnelChallenge() {
     };
 
     const resetChallenge = () => {
-        cancelAnimationFrame(animRef.current);
-        setSelectedCoating('none');
         setCompleted(false);
         setWon(false);
         setResult(null);
-        setAttempts(0);
         setHintsUsed(0);
         setShowHint(null);
+        setThetaI(45);
+        setPolarization('s');
     };
 
     const requestHint = () => {
-        if (hintsUsed < FRESNEL_HINTS.length) {
-            setShowHint(FRESNEL_HINTS[hintsUsed]);
+        if (hintsUsed < BREWSTER_HINTS.length) {
+            setShowHint(BREWSTER_HINTS[hintsUsed]);
             setHintsUsed(prev => prev + 1);
         }
     };
 
-    // Zone color for reflectance meter
-    const meterColor = reflectance < 5 ? '#00ff88' : reflectance < 15 ? '#ffd700' : reflectance < 25 ? '#ff8800' : '#ff4444';
+    const meterColor = Number(reflectanceStr) < 0.1 ? '#00ff88' : Number(reflectanceStr) < 5 ? '#ffd700' : Number(reflectanceStr) < 20 ? '#ff8800' : '#ff4444';
 
     return (
         <div className={styles.simulation}>
@@ -352,6 +353,7 @@ export default function FresnelChallenge() {
                         width={WIDTH}
                         height={HEIGHT}
                         className={styles.canvas}
+                        style={{ cursor: completed ? 'default' : 'crosshair' }}
                     />
                     {won && (
                         <motion.div
@@ -359,33 +361,30 @@ export default function FresnelChallenge() {
                             initial={{ opacity: 0, scale: 0.5 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                            style={{ color: '#00ff88', textShadow: '0 0 30px rgba(0, 255, 136, 0.8)' }}
+                            style={{ color: '#00ff88', textShadow: '0 0 30px rgba(0, 255, 136, 0.8)', fontSize: '2rem' }}
                         >
-                            🛡️ ¡Reflexión Anulada!
+                            ¡Acoplamiento Perfecto!
+                            <div style={{ fontSize: '1rem', marginTop: '10px', fontWeight: 'normal', opacity: 0.8 }}>
+                                Ángulo de Brewster Detectado
+                            </div>
                         </motion.div>
                     )}
                 </div>
 
                 <div className={styles.canvasLegend}>
                     <p style={{ margin: '0 0 8px 0', lineHeight: '1.4' }}>
-                        <strong>Ecuaciones de Fresnel:</strong> La reflectancia a incidencia normal es R = ((n₁ − n₂)/(n₁ + n₂))².
-                        Un recubrimiento antirreflejo ideal tiene n = √(n_aire × n_sustrato).
+                        <strong>Directriz:</strong> Configurá el láser para inyectar los datos en el {currentMaterial.name} sin que rebote la señal magnética. Encontrá la combinación exacta de Polarización y Ángulo para que <strong>Reflectancia = 0%</strong>.
                     </p>
-                    <div style={{ display: 'flex', gap: '15px', fontSize: '0.85rem', flexWrap: 'wrap' }}>
-                        <span><span style={{ color: '#ffd700' }}>━</span> Incidente</span>
-                        <span><span style={{ color: '#ff6644' }}>━</span> Reflejado</span>
-                        <span><span style={{ color: '#00ff88' }}>━</span> Transmitido</span>
-                    </div>
                 </div>
             </div>
 
             <div className={styles.controlPanel}>
-                <h3 className={styles.controlTitle}>⚙️ Controles</h3>
+                <h3 className={styles.controlTitle}>⚙️ Calibración del Láser</h3>
 
                 {/* Giant Reflectance Meter */}
                 <div className={styles.controlGroup}>
                     <label className={styles.controlLabel} style={{ textAlign: 'center', display: 'block' }}>
-                        Reflectancia (Luz Perdida)
+                        Luz Reflejada (Pérdida)
                     </label>
                     <div style={{
                         textAlign: 'center',
@@ -397,130 +396,88 @@ export default function FresnelChallenge() {
                         lineHeight: 1.1,
                         margin: '8px 0',
                     }}>
-                        {reflectance.toFixed(1)}%
-                    </div>
-                    <div style={{
-                        position: 'relative',
-                        height: '16px',
-                        background: 'rgba(0,0,0,0.4)',
-                        borderRadius: '8px',
-                        overflow: 'hidden',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                    }}>
-                        {/* 5% target line */}
-                        <div style={{
-                            position: 'absolute', top: 0, bottom: 0,
-                            left: '5%', width: '2px',
-                            background: 'rgba(0, 255, 136, 0.4)',
-                            zIndex: 1,
-                        }} />
-                        <div style={{
-                            position: 'absolute', top: '2px', bottom: '2px', left: '2px',
-                            width: `${Math.min(reflectance, 100)}%`,
-                            maxWidth: 'calc(100% - 4px)',
-                            background: `linear-gradient(90deg, ${meterColor}88, ${meterColor})`,
-                            borderRadius: '6px',
-                            transition: 'width 400ms ease, background 400ms ease',
-                        }} />
-                    </div>
-                    <div className={styles.rangeLabels} style={{ marginTop: '4px' }}>
-                        <span style={{ color: '#00ff88' }}>0%</span>
-                        <span style={{ color: '#00ff88', fontSize: '0.7rem' }}>Meta: &lt;5%</span>
-                        <span style={{ color: '#ff4444' }}>30%+</span>
+                        {reflectanceStr}%
                     </div>
                 </div>
 
-                {/* Transmittance */}
-                <div style={{
-                    textAlign: 'center', padding: '8px 12px',
-                    background: 'rgba(0, 255, 136, 0.04)',
-                    border: '1px solid rgba(0, 255, 136, 0.15)',
-                    borderRadius: '10px', marginBottom: '12px',
-                }}>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Energía Capturada</div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#00ff88', fontFamily: 'var(--font-mono)' }}>
-                        {transmittance.toFixed(1)}%
-                    </div>
-                </div>
-
-                {/* Coating Selector */}
+                {/* Polarization Toggle */}
                 <div className={styles.controlGroup}>
-                    <label className={styles.controlLabel}>Material del Recubrimiento:</label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        {COATING_MATERIALS.map(mat => {
-                            const isSelected = selectedCoating === mat.id;
-                            const matR = getReflectancePercent(mat.id);
-                            const isBest = matR < 5;
-                            return (
-                                <button
-                                    key={mat.id}
-                                    onClick={() => applyCoating(mat.id)}
-                                    disabled={completed}
-                                    style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        padding: '10px 14px',
-                                        background: isSelected
-                                            ? (isBest ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255,255,255,0.06)')
-                                            : 'rgba(255,255,255,0.02)',
-                                        border: isSelected
-                                            ? `2px solid ${isBest ? '#00ff88' : 'rgba(255,255,255,0.3)'}`
-                                            : '1px solid rgba(255,255,255,0.08)',
-                                        borderRadius: '10px',
-                                        color: isSelected ? '#fff' : 'var(--text-secondary)',
-                                        cursor: completed ? 'not-allowed' : 'pointer',
-                                        textAlign: 'left',
-                                        fontSize: '0.85rem',
-                                        transition: 'all 0.2s ease',
-                                    }}
-                                >
-                                    <div>
-                                        <div style={{ fontWeight: isSelected ? 700 : 500 }}>
-                                            {isSelected && '▸ '}{mat.name}
-                                        </div>
-                                        <div style={{ fontSize: '0.75rem', opacity: 0.6, marginTop: '2px' }}>
-                                            {mat.description}
-                                        </div>
-                                    </div>
-                                    <div style={{
-                                        fontFamily: 'var(--font-mono)',
-                                        fontSize: '0.8rem',
-                                        color: mat.id === 'none' ? 'var(--text-muted)' : mat.color,
-                                        fontWeight: 600,
-                                        whiteSpace: 'nowrap',
-                                        marginLeft: '12px',
-                                    }}>
-                                        n = {mat.n}
-                                    </div>
-                                </button>
-                            );
-                        })}
+                    <label className={styles.controlLabel}>Polarización del Láser:</label>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
+                        <button
+                            disabled={completed}
+                            onClick={() => setPolarization('s')}
+                            className={`btn ${polarization === 's' ? styles.btnActive : styles.btnInactive}`}
+                            style={{ flex: 1, background: polarization === 's' ? '#ff3366' : 'rgba(255,255,255,0.05)' }}
+                        >
+                            Perpendicular (TE / s)
+                        </button>
+                        <button
+                            disabled={completed}
+                            onClick={() => setPolarization('p')}
+                            className={`btn ${polarization === 'p' ? styles.btnActive : styles.btnInactive}`}
+                            style={{ flex: 1, background: polarization === 'p' ? '#33ccff' : 'rgba(255,255,255,0.05)', color: polarization==='p' ? '#000': '#fff' }}
+                        >
+                            Paralela (TM / p)
+                        </button>
                     </div>
                 </div>
 
-                {/* Info box */}
-                <div style={{
-                    padding: '10px 14px', borderRadius: '10px',
-                    background: 'rgba(100, 100, 255, 0.05)',
-                    border: '1px solid rgba(100, 100, 255, 0.15)',
-                    fontSize: '0.8rem', color: 'var(--text-secondary)',
-                    lineHeight: 1.5, marginBottom: '12px',
-                }}>
-                    <strong style={{ color: 'var(--text-primary)' }}>n ideal = √(n_aire × n_Si) = √{N_SILICON} ≈ {IDEAL_N.toFixed(2)}</strong><br />
-                    El material cuyo n se acerque más a este valor dará la menor reflexión.
+                {/* Material Dropdown */}
+                <div className={styles.controlGroup}>
+                    <label className={styles.controlLabel}>Material del Chip (n₂):</label>
+                    <select
+                        value={selectedMaterialId}
+                        onChange={(e) => setSelectedMaterialId(e.target.value)}
+                        disabled={completed}
+                        className={styles.paramInput}
+                        style={{ width: '100%', padding: '10px', fontSize: '1rem', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px' }}
+                    >
+                        {PHOTONIC_MATERIALS.map(m => (
+                            <option key={m.id} value={m.id} style={{ background: '#0a0a1a', color: '#fff' }}>
+                                {m.name} (n = {m.n.toFixed(2)})
+                            </option>
+                        ))}
+                    </select>
                 </div>
 
-                {/* Formula */}
-                <div className={styles.formulaBox} style={{ borderColor: 'rgba(200, 180, 255, 0.2)', background: 'rgba(200, 180, 255, 0.04)' }}>
-                    <span className={styles.formulaLabel}>Fresnel (incidencia normal)</span>
-                    <span className={styles.formula} style={{ color: '#c8b4ff' }}>R = ((n₁ − n₂) / (n₁ + n₂))²</span>
+                {/* Incidence Angle Slider */}
+                <div className={styles.controlGroup}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <label className={styles.controlLabel}>Ángulo de Incidencia (θi):</label>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>{thetaI.toFixed(1)}°</span>
+                    </div>
+                    <input
+                        type="range"
+                        min="0"
+                        max="89"
+                        step="0.1"
+                        value={thetaI}
+                        onChange={(e) => setThetaI(Number(e.target.value))}
+                        disabled={completed}
+                        className={styles.rangeInput}
+                        style={{ width: '100%' }}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginTop: '5px', color: 'var(--text-muted)' }}>
+                        <span>0° (Normal)</span>
+                        <span>89° (Rasante)</span>
+                    </div>
+                </div>
+
+                {/* Info Display Transmission */}
+                <div style={{
+                    display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderRadius: '10px',
+                    background: 'rgba(0, 255, 136, 0.05)', border: '1px solid rgba(0, 255, 136, 0.15)',
+                    fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '15px'
+                }}>
+                    <span>Luz Transmitida:</span>
+                    <strong style={{ color: '#00ff88', fontFamily: 'var(--font-mono)' }}>{transmittanceStr}%</strong>
                 </div>
 
                 {/* Buttons */}
                 <div className={styles.buttonGroup}>
                     <button className="btn btn-secondary" onClick={resetChallenge} style={{ width: '100%' }}>
-                        🔄 Reiniciar
+                        🔄 Reiniciar Sistema
                     </button>
                 </div>
 
@@ -528,14 +485,22 @@ export default function FresnelChallenge() {
                 {!completed && (
                     <div style={{ marginTop: '15px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Pistas ({hintsUsed}/{FRESNEL_HINTS.length})</span>
-                            <button className="btn btn-ghost btn-sm" onClick={requestHint} disabled={hintsUsed >= FRESNEL_HINTS.length}>
-                                💡 Pedir Pista (-10% XP)
+                            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Pistas del Archivo ({hintsUsed}/{BREWSTER_HINTS.length})</span>
+                            <button className="btn btn-ghost btn-sm" onClick={requestHint} disabled={hintsUsed >= BREWSTER_HINTS.length}>
+                                💡 Decodificar Pista (-10% XP)
                             </button>
                         </div>
                         {showHint && (
-                            <div style={{ background: 'rgba(255, 215, 0, 0.1)', border: '1px solid rgba(255,215,0,0.3)', padding: '10px', borderRadius: '8px', fontSize: '0.9rem', color: '#ffd700' }}>
-                                💡 {showHint}
+                            <div style={{ 
+                                background: 'rgba(0, 200, 255, 0.1)', 
+                                border: '1px solid rgba(0, 200, 255, 0.3)', 
+                                padding: '12px', 
+                                borderRadius: '8px', 
+                                fontSize: '0.85rem', 
+                                color: '#aaccff',
+                                lineHeight: '1.5'
+                            }}>
+                                🤖 <strong>Terminal:</strong> {showHint}
                             </div>
                         )}
                     </div>
@@ -550,11 +515,10 @@ export default function FresnelChallenge() {
                         style={{ borderColor: 'rgba(0,255,136,0.3)', background: 'rgba(0,255,136,0.06)' }}
                     >
                         <h4 className={styles.resultTitle} style={{ color: '#00ff88' }}>
-                            🎉 ¡Reflexión Anulada! Escudo Activado
+                            🎉 ¡Misión Cumplida!
                         </h4>
                         <p className={styles.resultFeedback}>
-                            Seleccionaste {getCoating(selectedCoating).name} (n={getCoating(selectedCoating).n}) como recubrimiento antirreflejo.
-                            La reflectancia bajó a {reflectance.toFixed(1)}%, maximizando la energía capturada por el panel solar.
+                            Has encontrado el Ángulo de Brewster para el <strong>{currentMaterial.name} ({getBrewsterAngleDeg(N_AIR, currentMaterial.n).toFixed(2)}°)</strong> con polarización paralela. La transferencia de datos es perfecta.
                         </p>
                         <div className={styles.resultStats}>
                             <div className={styles.resultStat}>
@@ -574,14 +538,11 @@ export default function FresnelChallenge() {
                                 <strong style={{ color: 'var(--neon-gold)', fontSize: '1.2rem' }}>+{result.totalXP}</strong>
                             </div>
                         </div>
-                        <div className={styles.achievements}>
-                            <span className={styles.achievementLabel}>🏆 Logros desbloqueados:</span>
-                            <span className="badge badge-gold">🛡️ Alquimista de la Luz</span>
-                        </div>
                         {result.achievementsUnlocked.length > 0 && (
                             <div className={styles.achievements}>
+                                <span className={styles.achievementLabel}>🏆 Logro desbloqueado:</span>
                                 {result.achievementsUnlocked.map((a) => (
-                                    <span key={a} className="badge badge-gold">{a}</span>
+                                    <span key={a} className="badge badge-gold">🛡️ {a}</span>
                                 ))}
                             </div>
                         )}
