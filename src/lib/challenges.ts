@@ -128,7 +128,7 @@ export const CHALLENGES: Challenge[] = [
         title: 'Escudo Invisible',
         subtitle: 'El Enigma de Brewster',
         description:
-            'Ajustá el ángulo de incidencia y la polarización del láser para que penetre un chip nanofotónico con 0% de pérdida. El ángulo exacto depende del material. ¡Recordá que una polarización no permite acoplamiento perfecto!',
+            'Tu objetivo es inyectar datos ópticos desde el aire (fibra-aire) hacia un procesador cuántico (chip nanofotónico) para cálculos a la velocidad de la luz. Cualquier reflexión causa pérdida de paquetes y daña el láser por "back-scattering". Ajustá el ángulo y la polarización para lograr 0% de reflexión (Acoplamiento Perfecto).',
         maxXp: 350,
         unlockLevel: 1,
         icon: '🛡️',

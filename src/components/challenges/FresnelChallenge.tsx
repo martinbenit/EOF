@@ -373,7 +373,8 @@ export default function FresnelChallenge() {
 
                 <div className={styles.canvasLegend}>
                     <p style={{ margin: '0 0 8px 0', lineHeight: '1.4' }}>
-                        <strong>Directriz:</strong> Configurá el láser para inyectar los datos en el {currentMaterial.name} sin que rebote la señal magnética. Encontrá la combinación exacta de Polarización y Ángulo para que <strong>Reflectancia = 0%</strong>.
+                        <strong>Contexto:</strong> Estás acoplando un láser de datos de alta velocidad en un procesador óptico. Cualquier luz reflejada significa pérdida de ancho de banda y "back-scattering". <br />
+                        <strong>Misión:</strong> Encontrá la combinación exacta de Polarización y Ángulo para inyectar la señal en el {currentMaterial.name} logrando una <strong>Reflectancia = 0%</strong> (Ángulo de Brewster).
                     </p>
                 </div>
             </div>
