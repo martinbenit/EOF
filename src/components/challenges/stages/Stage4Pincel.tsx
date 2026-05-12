@@ -1,46 +1,36 @@
 'use client';
 
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState } from 'react';
 
 interface Stage4Props {
     onWin: (xp: number) => void;
 }
 
-function useTypewriter(text: string, speed: number = 40) {
-    const [displayed, setDisplayed] = useState('');
-    const [done, setDone] = useState(false);
-    useEffect(() => {
-        setDisplayed('');
-        setDone(false);
-        let i = 0;
-        const interval = setInterval(() => {
-            i++;
-            setDisplayed(text.slice(0, i));
-            if (i >= text.length) { clearInterval(interval); setDone(true); }
-        }, speed);
-        return () => clearInterval(interval);
-    }, [text, speed]);
-    return { displayed, done };
-}
-
-// Physics: Particle in a box E_n = n²h²/(8mL²)
 const H_PLANCK = 6.626e-34;
-const ELECTRON_MASS = 9.109e-31; // Using effective mass ~0.13me for CdSe
-const EFFECTIVE_MASS = 0.13 * ELECTRON_MASS;
+const ELECTRON_MASS = 9.109e-31;
 const EV_TO_J = 1.602e-19;
 const C = 3e8;
 
-function energyLevel(n: number, L_nm: number): number {
+// Semiconductor materials with different effective masses
+const QD_MATERIALS = [
+    { name: 'CdSe', effectiveMass: 0.13, color: '#ff8800' },
+    { name: 'InP', effectiveMass: 0.077, color: '#00cc88' },
+    { name: 'PbS', effectiveMass: 0.085, color: '#8866cc' },
+    { name: 'ZnO', effectiveMass: 0.24, color: '#cccccc' },
+];
+
+function energyLevel(n: number, L_nm: number, mEff: number): number {
     const L = L_nm * 1e-9;
-    const E = (n * n * H_PLANCK * H_PLANCK) / (8 * EFFECTIVE_MASS * L * L);
-    return E / EV_TO_J; // in eV
+    const m = mEff * ELECTRON_MASS;
+    const E = (n * n * H_PLANCK * H_PLANCK) / (8 * m * L * L);
+    return E / EV_TO_J;
 }
 
 function energyToWavelength(deltaE_eV: number): number {
     if (deltaE_eV <= 0) return 10000;
     const E_J = deltaE_eV * EV_TO_J;
     const lambda = (H_PLANCK * C) / E_J;
-    return lambda * 1e9; // in nm
+    return lambda * 1e9;
 }
 
 function wavelengthToColor(nm: number): string {
@@ -67,32 +57,29 @@ function wavelengthToName(nm: number): string {
     return 'INFRARROJO';
 }
 
-const STORY = "Toxina contenida. Los médicos necesitan un marcador fluorescente AZUL para encontrar las células infectadas. Tenés Seleniuro de Cadmio. Usá a Schrödinger para forjar un Quantum Dot del tamaño exacto.";
-
-// Victory: emit blue light (450-495 nm)
 const BLUE_MIN = 440;
 const BLUE_MAX = 500;
 
 export default function Stage4Pincel({ onWin }: Stage4Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [dotSize, setDotSize] = useState(8); // nm, slider 1-10
+    const [dotSize, setDotSize] = useState(8);
+    const [materialIndex, setMaterialIndex] = useState(0);
     const [won, setWon] = useState(false);
     const [stableTime, setStableTime] = useState(0);
     const stableTimerRef = useRef(0);
     const animRef = useRef<number>(0);
 
-    const { displayed: storyText, done: storyDone } = useTypewriter(STORY, 30);
-
-    // Calculate energies
-    const E1 = energyLevel(1, dotSize);
-    const E2 = energyLevel(2, dotSize);
+    const material = QD_MATERIALS[materialIndex];
+    const E1 = energyLevel(1, dotSize, material.effectiveMass);
+    const E2 = energyLevel(2, dotSize, material.effectiveMass);
+    const E3 = energyLevel(3, dotSize, material.effectiveMass);
     const deltaE = E2 - E1;
     const emittedWavelength = energyToWavelength(deltaE);
     const emittedColor = wavelengthToColor(emittedWavelength);
     const colorName = wavelengthToName(emittedWavelength);
     const isBlue = emittedWavelength >= BLUE_MIN && emittedWavelength <= BLUE_MAX;
 
-    // Stable timer for blue emission
+    // Stable timer
     useEffect(() => {
         if (won) return;
         const interval = setInterval(() => {
@@ -124,8 +111,6 @@ export default function Stage4Pincel({ onWin }: Stage4Props) {
 
         const draw = () => {
             ctx.clearRect(0, 0, W, H);
-
-            // Background
             ctx.fillStyle = '#050510';
             ctx.fillRect(0, 0, W, H);
 
@@ -141,42 +126,33 @@ export default function Stage4Pincel({ onWin }: Stage4Props) {
             ctx.lineWidth = 3;
             ctx.shadowColor = '#8b5cf6';
             ctx.shadowBlur = 8;
-            // Left wall
-            ctx.beginPath();
-            ctx.moveTo(wellX, wellTop - 10);
-            ctx.lineTo(wellX, wellBottom);
-            ctx.stroke();
-            // Bottom
-            ctx.beginPath();
-            ctx.moveTo(wellX, wellBottom);
-            ctx.lineTo(wellX + wellW, wellBottom);
-            ctx.stroke();
-            // Right wall
-            ctx.beginPath();
-            ctx.moveTo(wellX + wellW, wellBottom);
-            ctx.lineTo(wellX + wellW, wellTop - 10);
-            ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(wellX, wellTop - 10); ctx.lineTo(wellX, wellBottom); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(wellX, wellBottom); ctx.lineTo(wellX + wellW, wellBottom); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(wellX + wellW, wellBottom); ctx.lineTo(wellX + wellW, wellTop - 10); ctx.stroke();
             ctx.shadowBlur = 0;
 
             // Inside fill
             ctx.fillStyle = 'rgba(139, 92, 246, 0.03)';
             ctx.fillRect(wellX, wellTop, wellW, wellH);
 
-            // Energy levels (E1, E2, E3)
-            const maxE = energyLevel(3, dotSize);
-            const eScale = (wellH - 30) / maxE;
+            // Energy levels (E1, E2, E3) — ANIMATED, positions change with dotSize and material
+            const maxE = E3 * 1.2; // Scale based on actual E3
+            const eScale = maxE > 0 ? (wellH - 30) / maxE : 1;
 
             for (let n = 1; n <= 3; n++) {
-                const E = energyLevel(n, dotSize);
+                const E = energyLevel(n, dotSize, material.effectiveMass);
                 const levelY = wellBottom - E * eScale - 10;
+
+                // Clamp to visible range
+                const clampedY = Math.max(wellTop + 5, Math.min(wellBottom - 5, levelY));
 
                 const isActive = n <= 2;
                 ctx.strokeStyle = isActive ? '#00f0ff' : 'rgba(255,255,255,0.15)';
                 ctx.lineWidth = isActive ? 2 : 1;
                 ctx.setLineDash([4, 4]);
                 ctx.beginPath();
-                ctx.moveTo(wellX + 5, levelY);
-                ctx.lineTo(wellX + wellW - 5, levelY);
+                ctx.moveTo(wellX + 5, clampedY);
+                ctx.lineTo(wellX + wellW - 5, clampedY);
                 ctx.stroke();
                 ctx.setLineDash([]);
 
@@ -184,19 +160,19 @@ export default function Stage4Pincel({ onWin }: Stage4Props) {
                 ctx.font = '8px "Press Start 2P", monospace';
                 ctx.fillStyle = isActive ? '#00f0ff' : '#444';
                 ctx.textAlign = 'right';
-                ctx.fillText(`E${n}`, wellX - 8, levelY + 4);
+                ctx.fillText(`E${n}`, wellX - 8, clampedY + 4);
                 ctx.textAlign = 'left';
-                ctx.fillText(`${E.toFixed(2)}eV`, wellX + wellW + 8, levelY + 4);
+                ctx.fillText(`${E.toFixed(2)}eV`, wellX + wellW + 8, clampedY + 4);
 
-                // Wavefunction ψₙ(x) on the level
+                // Wavefunction
                 if (isActive) {
-                    ctx.strokeStyle = `rgba(0, 240, 255, 0.3)`;
+                    ctx.strokeStyle = 'rgba(0, 240, 255, 0.3)';
                     ctx.lineWidth = 1.5;
                     ctx.beginPath();
                     for (let px = 0; px <= wellW; px++) {
                         const xRatio = px / wellW;
                         const psi = Math.sin(n * Math.PI * xRatio);
-                        const drawY = levelY - psi * 15;
+                        const drawY = clampedY - psi * 15;
                         if (px === 0) ctx.moveTo(wellX + px, drawY);
                         else ctx.lineTo(wellX + px, drawY);
                     }
@@ -204,9 +180,9 @@ export default function Stage4Pincel({ onWin }: Stage4Props) {
                 }
             }
 
-            // Transition arrow E2 -> E1
-            const e1Y = wellBottom - energyLevel(1, dotSize) * eScale - 10;
-            const e2Y = wellBottom - energyLevel(2, dotSize) * eScale - 10;
+            // Transition arrow E2 → E1
+            const e1Y = Math.max(wellTop + 5, Math.min(wellBottom - 5, wellBottom - E1 * eScale - 10));
+            const e2Y = Math.max(wellTop + 5, Math.min(wellBottom - 5, wellBottom - E2 * eScale - 10));
 
             ctx.strokeStyle = emittedColor;
             ctx.lineWidth = 3;
@@ -227,7 +203,7 @@ export default function Stage4Pincel({ onWin }: Stage4Props) {
             ctx.fill();
             ctx.shadowBlur = 0;
 
-            // Wavy photon line
+            // Wavy photon
             ctx.strokeStyle = emittedColor;
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -241,12 +217,17 @@ export default function Stage4Pincel({ onWin }: Stage4Props) {
             }
             ctx.stroke();
 
-            // Label for well width
+            // Well width label
             ctx.font = '8px "Press Start 2P", monospace';
             ctx.fillStyle = '#888';
             ctx.textAlign = 'center';
             ctx.fillText(`L=${dotSize.toFixed(1)}nm`, wellX + wellW / 2, wellBottom + 18);
             ctx.fillText(`ΔE=${deltaE.toFixed(2)}eV`, wellX + wellW / 2, wellBottom + 32);
+
+            // Material label
+            ctx.font = '7px "Press Start 2P", monospace';
+            ctx.fillStyle = material.color;
+            ctx.fillText(`${material.name} (m*=${material.effectiveMass}mₑ)`, wellX + wellW / 2, wellTop - 5);
 
             // === RIGHT: Medicine Flask ===
             const flaskX = W - 180;
@@ -267,7 +248,7 @@ export default function Stage4Pincel({ onWin }: Stage4Props) {
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            // Liquid in flask
+            // Liquid
             const liquidLevel = flaskY + 60;
             ctx.fillStyle = emittedColor;
             ctx.globalAlpha = 0.3;
@@ -280,7 +261,7 @@ export default function Stage4Pincel({ onWin }: Stage4Props) {
             ctx.fill();
             ctx.globalAlpha = 1;
 
-            // Glow effect from flask
+            // Glow
             const glowIntensity = 0.15 + Math.sin(frame * 0.05) * 0.08;
             ctx.shadowColor = emittedColor;
             ctx.shadowBlur = 25;
@@ -292,7 +273,7 @@ export default function Stage4Pincel({ onWin }: Stage4Props) {
             ctx.globalAlpha = 1;
             ctx.shadowBlur = 0;
 
-            // Photons emitting from flask
+            // Photons
             for (let p = 0; p < 6; p++) {
                 const angle = (frame * 0.03 + p * (Math.PI * 2 / 6));
                 const dist = 40 + Math.sin(frame * 0.05 + p) * 15;
@@ -301,11 +282,11 @@ export default function Stage4Pincel({ onWin }: Stage4Props) {
                 const alpha = 0.5 + Math.sin(frame * 0.1 + p * 2) * 0.3;
                 ctx.fillStyle = emittedColor;
                 ctx.globalAlpha = alpha;
-                ctx.fillRect(px - 2, py - 2, 4, 4); // Pixel photons
+                ctx.fillRect(px - 2, py - 2, 4, 4);
                 ctx.globalAlpha = 1;
             }
 
-            // Flask label
+            // Flask labels
             ctx.font = '8px "Press Start 2P", monospace';
             ctx.fillStyle = emittedColor;
             ctx.textAlign = 'center';
@@ -314,10 +295,9 @@ export default function Stage4Pincel({ onWin }: Stage4Props) {
             ctx.fillText(colorName, flaskX + 25, flaskY + 155);
             ctx.shadowBlur = 0;
 
-            // Target indicator
+            // Target
             ctx.font = '8px "Press Start 2P", monospace';
             ctx.fillStyle = '#3366ff';
-            ctx.textAlign = 'center';
             ctx.fillText('🎯 TARGET: AZUL', flaskX + 25, flaskY - 20);
             ctx.fillText(`(${BLUE_MIN}-${BLUE_MAX} nm)`, flaskX + 25, flaskY - 8);
 
@@ -336,38 +316,29 @@ export default function Stage4Pincel({ onWin }: Stage4Props) {
 
         draw();
         return () => cancelAnimationFrame(animRef.current);
-    }, [dotSize, deltaE, emittedWavelength, emittedColor, colorName]);
+    }, [dotSize, materialIndex, deltaE, E1, E2, E3, emittedWavelength, emittedColor, colorName, material]);
 
     // Feedback
     let feedbackClass = 'sqo-feedback-info';
-    let feedbackMsg = `El frasco emite luz ${colorName}. Ajustá el tamaño del Quantum Dot.`;
+    let feedbackMsg = `Material: ${material.name}. Emisión ${colorName} (λ=${emittedWavelength.toFixed(0)}nm). Ajustá L y material.`;
     if (isBlue) {
         feedbackClass = 'sqo-feedback-success';
-        feedbackMsg = `¡Emisión AZUL lograda! λ=${emittedWavelength.toFixed(0)}nm. Estabilizando biomarcador...`;
+        feedbackMsg = `¡Emisión AZUL! λ=${emittedWavelength.toFixed(0)}nm. Estabilizando biomarcador...`;
     } else if (emittedWavelength > 600) {
         feedbackClass = 'sqo-feedback-warning';
-        feedbackMsg = `Emisión ${colorName} (λ=${emittedWavelength.toFixed(0)}nm). El QD es muy grande. Achicalo.`;
+        feedbackMsg = `Emisión ${colorName} (${emittedWavelength.toFixed(0)}nm). QD muy grande o m* muy alta. Achicá L o cambiá material.`;
     } else if (emittedWavelength < 440) {
         feedbackClass = 'sqo-feedback-warning';
-        feedbackMsg = `Emisión ${colorName} (λ=${emittedWavelength.toFixed(0)}nm). Pasaste de AZUL. Agrandá un poco.`;
+        feedbackMsg = `Emisión ${colorName} (${emittedWavelength.toFixed(0)}nm). Pasaste de azul. Agrandá L o probá otro material.`;
     }
 
     return (
         <div className="sqo-game-area">
-            {/* Story */}
-            <div className="sqo-typewriter">
-                <div className="sqo-typewriter-text">
-                    {storyText}
-                    {!storyDone && <span className="sqo-typewriter-cursor" />}
-                </div>
-            </div>
-
-            {/* Canvas */}
             <div className="sqo-canvas-wrapper">
                 <canvas ref={canvasRef} width={700} height={350} className="sqo-canvas" />
             </div>
 
-            {/* Blue Stabilize Timer */}
+            {/* Blue timer */}
             {isBlue && !won && (
                 <div className="sqo-sweet-spot-timer">
                     <span className="sqo-sweet-spot-label">ESTABILIZANDO AZUL...</span>
@@ -382,60 +353,62 @@ export default function Stage4Pincel({ onWin }: Stage4Props) {
                 </div>
             )}
 
-            {/* Status */}
             <div className="sqo-status-row">
                 <div className="sqo-status-item">
                     <span className="sqo-status-label">EMISIÓN</span>
                     <div className="sqo-bar-container">
-                        <div
-                            className="sqo-bar-fill"
-                            style={{
-                                width: `${Math.min(100, Math.max(5, ((780 - emittedWavelength) / 400) * 100))}%`,
-                                background: `linear-gradient(90deg, ${emittedColor}, ${emittedColor}88)`,
-                                boxShadow: `0 0 8px ${emittedColor}`,
-                            }}
-                        />
+                        <div className="sqo-bar-fill" style={{
+                            width: `${Math.min(100, Math.max(5, ((780 - emittedWavelength) / 400) * 100))}%`,
+                            background: `linear-gradient(90deg, ${emittedColor}, ${emittedColor}88)`,
+                            boxShadow: `0 0 8px ${emittedColor}`,
+                        }} />
                     </div>
                     <span className="sqo-bar-value" style={{ color: emittedColor }}>{emittedWavelength.toFixed(0)}nm</span>
                 </div>
                 <div className="sqo-status-item">
                     <span className="sqo-status-label">ΔE</span>
                     <div className="sqo-bar-container">
-                        <div
-                            className="sqo-bar-fill sqo-bar-blue"
-                            style={{ width: `${Math.min(100, deltaE * 10)}%` }}
-                        />
+                        <div className="sqo-bar-fill sqo-bar-blue" style={{ width: `${Math.min(100, deltaE * 10)}%` }} />
                     </div>
                     <span className="sqo-bar-value">{deltaE.toFixed(1)}eV</span>
                 </div>
             </div>
 
-            {/* Feedback */}
-            <div className={`sqo-feedback ${feedbackClass}`}>
-                {feedbackMsg}
-            </div>
+            <div className={`sqo-feedback ${feedbackClass}`}>{feedbackMsg}</div>
 
-            {/* Controls */}
             <div className="sqo-controls">
+                {/* Material Selector */}
+                <div className="sqo-control-row">
+                    <span className="sqo-control-label">MATERIAL QD</span>
+                    <div className="sqo-knob-group">
+                        {QD_MATERIALS.map((mat, idx) => (
+                            <button
+                                key={idx}
+                                className={`sqo-knob-btn ${idx === materialIndex ? 'sqo-knob-active' : ''}`}
+                                onClick={() => { if (!won) setMaterialIndex(idx); }}
+                                style={{ '--knob-color': mat.color } as React.CSSProperties}
+                                disabled={won}
+                            >
+                                <span className="sqo-knob-label">{mat.name}</span>
+                                <span className="sqo-knob-val">m*={mat.effectiveMass}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
                 <div className="sqo-control-row">
                     <span className="sqo-control-label">TAMAÑO QD (L)</span>
                     <div className="sqo-slider-container">
-                        <input
-                            type="range" min="1" max="10" step="0.1" value={dotSize}
+                        <input type="range" min="1" max="10" step="0.1" value={dotSize}
                             onChange={e => { if (!won) setDotSize(Number(e.target.value)); }}
-                            className="sqo-slider"
-                            disabled={won}
-                        />
-                        <div className="sqo-slider-labels">
-                            <span>1 nm</span><span>5 nm</span><span>10 nm</span>
-                        </div>
+                            className="sqo-slider" disabled={won} />
+                        <div className="sqo-slider-labels"><span>1 nm</span><span>5 nm</span><span>10 nm</span></div>
                     </div>
                     <span className="sqo-control-value">{dotSize.toFixed(1)} nm</span>
                 </div>
-                <div className="sqo-control-row" style={{ justifyContent: 'center', gap: '24px' }}>
-                    <span style={{ fontSize: '7px', color: '#666' }}>Eₙ = n²h²/(8mL²)</span>
+                <div className="sqo-control-row" style={{ justifyContent: 'center', gap: '16px' }}>
+                    <span style={{ fontSize: '7px', color: '#666' }}>Eₙ = n²h²/(8m*L²)</span>
                     <span style={{ fontSize: '7px', color: '#666' }}>Schrödinger (Pozo Infinito)</span>
-                    <span style={{ fontSize: '7px', color: '#666' }}>CdSe Quantum Dot</span>
+                    <span style={{ fontSize: '7px', color: material.color }}>{material.name} QD</span>
                 </div>
             </div>
         </div>
