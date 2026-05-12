@@ -1,0 +1,909 @@
+/* ============================================
+   OPERACIÓN SALTO CUÁNTICO — Retro Arcade CSS
+   Family Game / 16-bit aesthetic
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+/* ---- CRT / Retro Container ---- */
+.sqo-container {
+    width: 100%;
+    min-height: 600px;
+    font-family: 'Press Start 2P', monospace;
+    color: #e0ffe0;
+    position: relative;
+}
+
+.sqo-crt {
+    position: relative;
+    background: #0a0a14;
+    border: 3px solid #333;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow:
+        inset 0 0 80px rgba(0, 255, 100, 0.03),
+        0 0 20px rgba(0, 0, 0, 0.8);
+}
+
+/* CRT Scanlines */
+.sqo-crt::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15) 0px,
+        rgba(0, 0, 0, 0.15) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+    pointer-events: none;
+    z-index: 100;
+}
+
+/* CRT Vignette */
+.sqo-crt::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(
+        ellipse at center,
+        transparent 60%,
+        rgba(0, 0, 0, 0.4) 100%
+    );
+    pointer-events: none;
+    z-index: 101;
+}
+
+/* ---- HUD Header ---- */
+.sqo-hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+    border-bottom: 2px solid #00ff88;
+    position: relative;
+    z-index: 50;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.sqo-hud-title {
+    font-size: 10px;
+    color: #00ff88;
+    text-shadow: 0 0 10px #00ff88, 0 0 20px #00ff88;
+    letter-spacing: 2px;
+}
+
+.sqo-hud-stats {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sqo-hud-stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sqo-hud-label {
+    font-size: 8px;
+    color: #888;
+}
+
+.sqo-hud-value {
+    font-size: 12px;
+    color: #fff;
+    text-shadow: 0 0 6px rgba(255, 255, 255, 0.5);
+}
+
+.sqo-hud-divider {
+    color: #444;
+    font-size: 14px;
+}
+
+.sqo-xp-glow {
+    color: #ffd700 !important;
+    text-shadow: 0 0 8px #ffd700, 0 0 16px #ffa500 !important;
+}
+
+/* ---- Stage Bar ---- */
+.sqo-stage-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: rgba(0, 0, 0, 0.5);
+    border-bottom: 1px solid #333;
+    position: relative;
+    z-index: 50;
+    flex-wrap: wrap;
+}
+
+.sqo-stage-icon {
+    font-size: 18px;
+}
+
+.sqo-stage-name {
+    font-size: 9px;
+    color: #00ccff;
+    text-shadow: 0 0 6px #00ccff;
+    flex: 1;
+}
+
+.sqo-hint-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    padding: 6px 12px;
+    background: #332200;
+    color: #ffd700;
+    border: 2px solid #ffd700;
+    cursor: pointer;
+    text-shadow: 0 0 4px #ffd700;
+    transition: all 0.2s;
+}
+
+.sqo-hint-btn:hover {
+    background: #553300;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+}
+
+/* ---- Hint Menu ---- */
+.sqo-hint-menu {
+    position: relative;
+    z-index: 90;
+    padding: 16px;
+    background: linear-gradient(180deg, #1a1500 0%, #0d0d00 100%);
+    border-bottom: 2px solid #ffd700;
+    border-top: 1px solid #553300;
+}
+
+.sqo-hint-menu-title {
+    font-size: 10px;
+    color: #ffd700;
+    text-shadow: 0 0 8px #ffd700;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.sqo-hint-item {
+    margin-bottom: 10px;
+    padding: 10px;
+    background: rgba(255, 215, 0, 0.05);
+    border: 1px solid #553300;
+    border-radius: 4px;
+}
+
+.sqo-hint-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 8px;
+    color: #cca300;
+    margin-bottom: 8px;
+}
+
+.sqo-hint-cost {
+    color: #ff6600;
+    text-shadow: 0 0 4px #ff6600;
+}
+
+.sqo-hint-text {
+    font-size: 8px;
+    color: #ffe066;
+    line-height: 1.8;
+    padding: 8px;
+    background: rgba(255, 215, 0, 0.08);
+    border-left: 3px solid #ffd700;
+}
+
+.sqo-btn-hint-buy {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    padding: 6px 12px;
+    width: 100%;
+    background: #443300;
+    color: #ffd700;
+    border: 1px solid #886600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sqo-btn-hint-buy:hover:not(.sqo-btn-disabled) {
+    background: #665500;
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+}
+
+.sqo-btn-disabled {
+    opacity: 0.4;
+    cursor: not-allowed !important;
+    color: #666;
+}
+
+.sqo-btn-close-hints {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    padding: 6px 12px;
+    width: 100%;
+    margin-top: 8px;
+    background: transparent;
+    color: #888;
+    border: 1px solid #444;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sqo-btn-close-hints:hover {
+    color: #fff;
+    border-color: #888;
+}
+
+/* ---- Stage Content ---- */
+.sqo-stage-content {
+    position: relative;
+    z-index: 10;
+    min-height: 500px;
+}
+
+/* ---- Typewriter Effect ---- */
+.sqo-typewriter {
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.6);
+    border-bottom: 1px solid #222;
+}
+
+.sqo-typewriter-text {
+    font-size: 8px;
+    color: #00ff88;
+    line-height: 2;
+    text-shadow: 0 0 4px #00ff88;
+    overflow: hidden;
+    white-space: normal;
+}
+
+.sqo-typewriter-cursor {
+    display: inline-block;
+    width: 8px;
+    height: 12px;
+    background: #00ff88;
+    margin-left: 2px;
+    animation: sqo-cursor-blink 0.6s infinite;
+    vertical-align: middle;
+}
+
+@keyframes sqo-cursor-blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+}
+
+/* ---- Game Canvas ---- */
+.sqo-game-area {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.sqo-canvas-wrapper {
+    width: 100%;
+    position: relative;
+    background: #050510;
+    overflow: hidden;
+}
+
+.sqo-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    image-rendering: pixelated;
+}
+
+/* ---- Controls Panel ---- */
+.sqo-controls {
+    padding: 16px 20px;
+    background: linear-gradient(180deg, #0d0d1a 0%, #080812 100%);
+    border-top: 2px solid #333;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.sqo-control-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.sqo-control-label {
+    font-size: 8px;
+    color: #aaa;
+    min-width: 140px;
+    line-height: 1.6;
+}
+
+.sqo-slider-container {
+    flex: 1;
+    min-width: 150px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sqo-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 8px;
+    background: linear-gradient(90deg, #1a1a2e, #2a2a4e);
+    border: 1px solid #444;
+    border-radius: 0;
+    outline: none;
+    cursor: pointer;
+}
+
+.sqo-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 20px;
+    background: #00ff88;
+    border: 2px solid #00cc66;
+    cursor: pointer;
+    box-shadow: 0 0 8px #00ff88;
+}
+
+.sqo-slider::-moz-range-thumb {
+    width: 16px;
+    height: 20px;
+    background: #00ff88;
+    border: 2px solid #00cc66;
+    cursor: pointer;
+    box-shadow: 0 0 8px #00ff88;
+    border-radius: 0;
+}
+
+.sqo-slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 7px;
+    color: #555;
+}
+
+.sqo-control-value {
+    font-size: 10px;
+    color: #00ccff;
+    text-shadow: 0 0 4px #00ccff;
+    min-width: 60px;
+    text-align: right;
+}
+
+/* ---- Status Bars ---- */
+.sqo-status-row {
+    display: flex;
+    gap: 16px;
+    padding: 10px 20px;
+    background: rgba(0, 0, 0, 0.4);
+    flex-wrap: wrap;
+}
+
+.sqo-status-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 200px;
+}
+
+.sqo-status-label {
+    font-size: 7px;
+    color: #888;
+    min-width: 80px;
+}
+
+.sqo-bar-container {
+    flex: 1;
+    height: 14px;
+    background: #1a1a2e;
+    border: 1px solid #333;
+    position: relative;
+    overflow: hidden;
+}
+
+.sqo-bar-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+    position: relative;
+}
+
+.sqo-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 4px;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.sqo-bar-green {
+    background: linear-gradient(90deg, #006600, #00ff00);
+    box-shadow: 0 0 8px rgba(0, 255, 0, 0.3);
+}
+
+.sqo-bar-red {
+    background: linear-gradient(90deg, #660000, #ff0000);
+    box-shadow: 0 0 8px rgba(255, 0, 0, 0.3);
+}
+
+.sqo-bar-blue {
+    background: linear-gradient(90deg, #000066, #0066ff);
+    box-shadow: 0 0 8px rgba(0, 100, 255, 0.3);
+}
+
+.sqo-bar-yellow {
+    background: linear-gradient(90deg, #664400, #ffcc00);
+    box-shadow: 0 0 8px rgba(255, 200, 0, 0.3);
+}
+
+.sqo-bar-value {
+    font-size: 7px;
+    color: #fff;
+    min-width: 30px;
+    text-align: right;
+}
+
+/* ---- Feedback Messages ---- */
+.sqo-feedback {
+    padding: 8px 20px;
+    font-size: 7px;
+    text-align: center;
+    line-height: 1.8;
+    min-height: 30px;
+}
+
+.sqo-feedback-warning {
+    color: #ff6600;
+    text-shadow: 0 0 4px #ff6600;
+    background: rgba(255, 100, 0, 0.08);
+    border-top: 1px solid #663300;
+    border-bottom: 1px solid #663300;
+}
+
+.sqo-feedback-success {
+    color: #00ff88;
+    text-shadow: 0 0 4px #00ff88;
+    background: rgba(0, 255, 100, 0.08);
+    border-top: 1px solid #006633;
+    border-bottom: 1px solid #006633;
+}
+
+.sqo-feedback-info {
+    color: #00ccff;
+    text-shadow: 0 0 4px #00ccff;
+    background: rgba(0, 200, 255, 0.05);
+    border-top: 1px solid #003366;
+    border-bottom: 1px solid #003366;
+}
+
+.sqo-feedback-danger {
+    color: #ff3333;
+    text-shadow: 0 0 6px #ff0000;
+    background: rgba(255, 0, 0, 0.1);
+    border-top: 1px solid #660000;
+    border-bottom: 1px solid #660000;
+    animation: sqo-danger-pulse 0.5s ease infinite;
+}
+
+@keyframes sqo-danger-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* ---- Victory Modal ---- */
+.sqo-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+}
+
+.sqo-modal {
+    background: linear-gradient(180deg, #1a1a2e 0%, #0a0a14 100%);
+    border: 3px solid #00ff88;
+    padding: 32px;
+    text-align: center;
+    max-width: 500px;
+    width: 100%;
+    position: relative;
+    box-shadow:
+        0 0 30px rgba(0, 255, 136, 0.3),
+        inset 0 0 30px rgba(0, 255, 136, 0.05);
+    animation: sqo-modal-in 0.5s ease;
+}
+
+@keyframes sqo-modal-in {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.sqo-modal-stars {
+    font-size: 20px;
+    color: #ffd700;
+    text-shadow: 0 0 10px #ffd700;
+    margin-bottom: 16px;
+    letter-spacing: 8px;
+}
+
+.sqo-modal-title {
+    font-size: 14px;
+    color: #00ff88;
+    text-shadow: 0 0 10px #00ff88;
+    margin-bottom: 12px;
+}
+
+.sqo-modal-message {
+    font-size: 8px;
+    color: #aaffaa;
+    line-height: 2;
+    margin-bottom: 20px;
+}
+
+.sqo-modal-xp {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: rgba(255, 215, 0, 0.08);
+    border: 1px solid #664400;
+}
+
+.sqo-modal-xp-label {
+    font-size: 8px;
+    color: #888;
+}
+
+.sqo-modal-xp-value {
+    font-size: 20px;
+    color: #ffd700;
+    text-shadow: 0 0 12px #ffd700, 0 0 24px #ff8800;
+}
+
+/* ---- Retro Buttons ---- */
+.sqo-btn-retro {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    padding: 12px 24px;
+    background: linear-gradient(180deg, #006633 0%, #003d1a 100%);
+    color: #00ff88;
+    border: 2px solid #00ff88;
+    cursor: pointer;
+    text-shadow: 0 0 6px #00ff88;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+}
+
+.sqo-btn-retro:hover {
+    background: linear-gradient(180deg, #008844 0%, #005522 100%);
+    box-shadow: 0 0 16px rgba(0, 255, 136, 0.4);
+    transform: scale(1.02);
+}
+
+/* ---- Blinking Animations ---- */
+.sqo-blink {
+    animation: sqo-blink-anim 0.8s infinite;
+}
+
+@keyframes sqo-blink-anim {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+}
+
+.sqo-blink-slow {
+    animation: sqo-blink-slow-anim 1.5s ease-in-out infinite;
+}
+
+@keyframes sqo-blink-slow-anim {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* ---- Completed Screen ---- */
+.sqo-completed-screen {
+    padding: 40px 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    min-height: 500px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.sqo-completed-title {
+    font-size: 18px;
+    color: #ffd700;
+    text-shadow: 0 0 15px #ffd700, 0 0 30px #ff8800;
+    margin-bottom: 8px;
+}
+
+.sqo-completed-subtitle {
+    font-size: 10px;
+    color: #00ff88;
+    text-shadow: 0 0 8px #00ff88;
+    margin-bottom: 32px;
+}
+
+.sqo-final-score {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 32px;
+    padding: 24px 48px;
+    background: rgba(255, 215, 0, 0.08);
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+}
+
+.sqo-final-score-label {
+    font-size: 8px;
+    color: #888;
+}
+
+.sqo-final-score-value {
+    font-size: 28px;
+    color: #ffd700;
+    text-shadow: 0 0 15px #ffd700, 0 0 30px #ff8800;
+}
+
+.sqo-completed-stages {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 32px;
+}
+
+.sqo-completed-stage-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: rgba(0, 255, 136, 0.05);
+    border: 1px solid #003d1a;
+}
+
+.sqo-completed-stage-icon {
+    font-size: 14px;
+}
+
+.sqo-completed-stage-name {
+    font-size: 7px;
+    color: #aaa;
+    flex: 1;
+    text-align: left;
+}
+
+.sqo-completed-check {
+    font-size: 10px;
+    color: #00ff88;
+    text-shadow: 0 0 6px #00ff88;
+}
+
+/* ---- Fireworks ---- */
+.sqo-fireworks {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.sqo-firework-particle {
+    position: absolute;
+    width: var(--size, 5px);
+    height: var(--size, 5px);
+    background: var(--color, #ff0);
+    left: var(--x, 50%);
+    top: var(--y, 50%);
+    border-radius: 50%;
+    animation: sqo-firework-burst 2s var(--delay, 0s) infinite;
+    box-shadow: 0 0 6px var(--color, #ff0);
+}
+
+@keyframes sqo-firework-burst {
+    0% { transform: scale(0); opacity: 1; }
+    50% { transform: scale(1.5); opacity: 0.8; }
+    100% { transform: scale(0); opacity: 0; }
+}
+
+/* ---- Screen Shake ---- */
+.sqo-shake {
+    animation: sqo-screen-shake 0.15s infinite;
+}
+
+@keyframes sqo-screen-shake {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(-3px, 2px); }
+    50% { transform: translate(3px, -2px); }
+    75% { transform: translate(-2px, -3px); }
+    100% { transform: translate(2px, 3px); }
+}
+
+/* ---- Glitch Effect ---- */
+.sqo-glitch {
+    animation: sqo-glitch-effect 0.3s infinite;
+}
+
+@keyframes sqo-glitch-effect {
+    0% { filter: none; }
+    20% { filter: hue-rotate(90deg) saturate(2); }
+    40% { filter: none; }
+    60% { filter: hue-rotate(180deg) brightness(1.5); }
+    80% { filter: none; }
+    100% { filter: hue-rotate(270deg); }
+}
+
+/* ---- Stage-specific ---- */
+.sqo-virus-container {
+    text-align: center;
+    padding: 20px;
+}
+
+.sqo-virus-image {
+    font-size: 60px;
+    display: inline-block;
+    transition: filter 0.3s ease;
+}
+
+.sqo-wave-display {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 20px;
+    font-size: 7px;
+    color: #888;
+}
+
+/* ---- Game Over ---- */
+.sqo-gameover-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(100, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    padding: 20px;
+}
+
+.sqo-gameover-title {
+    font-size: 20px;
+    color: #ff3333;
+    text-shadow: 0 0 15px #ff0000;
+    margin-bottom: 12px;
+}
+
+.sqo-gameover-msg {
+    font-size: 8px;
+    color: #ffaaaa;
+    line-height: 2;
+    margin-bottom: 20px;
+    text-align: center;
+    max-width: 400px;
+}
+
+.sqo-btn-retry {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    padding: 12px 24px;
+    background: linear-gradient(180deg, #660000, #330000);
+    color: #ff3333;
+    border: 2px solid #ff3333;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sqo-btn-retry:hover {
+    background: #880000;
+    box-shadow: 0 0 12px rgba(255, 0, 0, 0.4);
+}
+
+/* ---- Sweet Spot Timer ---- */
+.sqo-sweet-spot-timer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: rgba(0, 255, 136, 0.05);
+    border-top: 1px solid #003d1a;
+}
+
+.sqo-sweet-spot-label {
+    font-size: 7px;
+    color: #00ff88;
+    min-width: 120px;
+}
+
+.sqo-sweet-spot-bar {
+    flex: 1;
+    height: 10px;
+    background: #1a1a2e;
+    border: 1px solid #333;
+    overflow: hidden;
+}
+
+.sqo-sweet-spot-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00ff88, #00ffcc);
+    box-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+    transition: width 0.3s linear;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+    .sqo-hud {
+        flex-direction: column;
+        text-align: center;
+        gap: 6px;
+    }
+
+    .sqo-hud-title {
+        font-size: 8px;
+    }
+
+    .sqo-control-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .sqo-control-label {
+        min-width: unset;
+    }
+
+    .sqo-control-value {
+        text-align: left;
+    }
+
+    .sqo-status-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .sqo-completed-title {
+        font-size: 12px;
+    }
+
+    .sqo-final-score-value {
+        font-size: 20px;
+    }
+
+    .sqo-modal {
+        padding: 20px;
+    }
+
+    .sqo-modal-title {
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    .sqo-hud-title {
+        font-size: 7px;
+        letter-spacing: 1px;
+    }
+
+    .sqo-stage-name {
+        font-size: 7px;
+    }
+}

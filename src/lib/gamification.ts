@@ -59,6 +59,7 @@ export function getLevelTitle(level: number): string {
 export const CHALLENGE_BASE_XP: Record<ChallengeId, number> = {
     lorentz: 200,
     maxwell: 250,
+    'salto-cuantico': 300,
     quantum: 300,
     nanophotonic: 400,
     'ion-pilot': 200,
@@ -72,6 +73,7 @@ export const CHALLENGE_BASE_XP: Record<ChallengeId, number> = {
 export const CHALLENGE_MAX_BONUS: Record<ChallengeId, number> = {
     lorentz: 150,
     maxwell: 200,
+    'salto-cuantico': 250,
     quantum: 250,
     nanophotonic: 300,
     'ion-pilot': 300,
@@ -226,7 +228,7 @@ function checkAchievements(
     }
 
     // Heisenberg limit (quantum challenge specific)
-    if (challengeId === 'quantum' && score >= 85) {
+    if ((challengeId === 'quantum' || challengeId === 'salto-cuantico') && score >= 85) {
         unlocked.push('heisenberg_limit');
     }
 

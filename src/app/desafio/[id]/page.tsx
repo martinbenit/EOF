@@ -7,6 +7,7 @@ import { getChallengeById } from '@/lib/challenges';
 import LorentzChallenge from '@/components/challenges/LorentzChallenge';
 import MaxwellChallenge from '@/components/challenges/MaxwellChallenge';
 import QuantumChallenge from '@/components/challenges/QuantumChallenge';
+import OperacionSaltoCuantico from '@/components/challenges/OperacionSaltoCuantico';
 import NanophotonicChallenge from '@/components/challenges/NanophotonicChallenge';
 import IonPilotChallenge from '@/components/challenges/IonPilotChallenge';
 import SMESForgeChallenge from '@/components/challenges/SMESForgeChallenge';
@@ -21,6 +22,7 @@ const challengeComponents: Record<string, React.ComponentType> = {
     lorentz: LorentzChallenge,
     maxwell: MaxwellChallenge,
     quantum: QuantumChallenge,
+    'salto-cuantico': OperacionSaltoCuantico,
     nanophotonic: NanophotonicChallenge,
     'ion-pilot': IonPilotChallenge,
     'smes-forge': SMESForgeChallenge,
