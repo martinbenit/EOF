@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createServiceClient } from '@/lib/supabase';
+import { CHALLENGES } from '@/lib/challenges';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
-        const { data: leaderboard, error } = await supabase
+        const db = createServiceClient();
+
+        const { data: leaderboard, error } = await db
             .from('profiles')
             .select('id, display_name, avatar_url, total_xp, level')
             .eq('role', 'student')
@@ -12,17 +17,20 @@ export async function GET() {
 
         if (error) throw error;
 
-        // Also fetch completed challenges count per user
-        // Note: For now we'll mock challenges completed until the exact progress DB is queried, or we can use a separate query
-        const { data: progress } = await supabase
+        // Fetch completed challenges count per user
+        const { data: progress } = await db
             .from('progress')
-            .select('profile_id')
+            .select('profile_id, challenge_id')
             .eq('status', 'completed');
 
-        const challengeCounts = (progress || []).reduce((acc: any, row) => {
-            acc[row.profile_id] = (acc[row.profile_id] || 0) + 1;
-            return acc;
-        }, {});
+        // Count unique completed challenges per user
+        const challengeCounts: Record<string, Set<string>> = {};
+        (progress || []).forEach((row) => {
+            if (!challengeCounts[row.profile_id]) challengeCounts[row.profile_id] = new Set();
+            challengeCounts[row.profile_id].add(row.challenge_id);
+        });
+
+        const totalChallenges = CHALLENGES.length;
 
         const enrichedLeaderboard = leaderboard.map((user, idx) => ({
             rank: idx + 1,
@@ -31,7 +39,8 @@ export async function GET() {
             avatarUrl: user.avatar_url,
             xp: user.total_xp,
             level: user.level,
-            challenges: challengeCounts[user.id] || 0,
+            challenges: challengeCounts[user.id]?.size || 0,
+            totalChallenges,
             badge: idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '',
         }));
 

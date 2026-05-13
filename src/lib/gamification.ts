@@ -169,7 +169,7 @@ export const ACHIEVEMENT_DEFINITIONS: Achievement[] = [
     {
         key: 'all_challenges',
         title: 'Maestro EOF',
-        description: 'Completaste los 4 desafíos',
+        description: 'Completaste todos los desafíos',
         icon: '🏆',
         xpReward: 500,
     },
@@ -206,6 +206,27 @@ export const ACHIEVEMENT_DEFINITIONS: Achievement[] = [
         title: 'Alquimista de la Luz',
         description: 'Minimizaste la reflexión usando el recubrimiento antirreflejo perfecto',
         icon: '🛡️',
+        xpReward: 100,
+    },
+    {
+        key: 'salto-cuantico_master',
+        title: 'Agente Cuántico',
+        description: 'Completaste Operación Salto Cuántico con score perfecto',
+        icon: '🚀',
+        xpReward: 150,
+    },
+    {
+        key: 'ion-pilot_master',
+        title: 'Piloto de Élite',
+        description: 'Navegaste el canal microfluídico con precisión perfecta',
+        icon: '🕹️',
+        xpReward: 100,
+    },
+    {
+        key: 'smes-forge_master',
+        title: 'Herrero Magnético',
+        description: 'Diseñaste la bobina SMES con eficiencia perfecta',
+        icon: '🔋',
         xpReward: 100,
     },
 ];

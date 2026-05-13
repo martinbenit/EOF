@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { supabase as supabaseServer } from '@/lib/supabase';
+import { supabase as supabaseAnon, createServiceClient } from '@/lib/supabase';
+import { CHALLENGES } from '@/lib/challenges';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,12 +9,12 @@ async function verifyAdmin(request: Request) {
     if (!authHeader || !authHeader.startsWith('Bearer ')) return false;
 
     const token = authHeader.split('Bearer ')[1];
-    const supabase = supabaseServer;
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    const { data: { user }, error } = await supabaseAnon.auth.getUser(token);
 
     if (error || !user) return false;
 
-    const { data: profile } = await supabase
+    const db = createServiceClient();
+    const { data: profile } = await db
         .from('profiles')
         .select('role')
         .eq('id', user.id)
@@ -22,6 +23,32 @@ async function verifyAdmin(request: Request) {
     return profile?.role === 'professor' || profile?.role === 'admin';
 }
 
+// Build unit-to-challenges mapping dynamically from CHALLENGES config
+function getChallengesByUnit(): Record<number, { id: string; weight: number }[]> {
+    const unitGroups: Record<number, typeof CHALLENGES> = {};
+    CHALLENGES.forEach(c => {
+        if (!unitGroups[c.unit]) unitGroups[c.unit] = [];
+        unitGroups[c.unit].push(c);
+    });
+
+    const result: Record<number, { id: string; weight: number }[]> = {};
+    for (const [unitStr, challenges] of Object.entries(unitGroups)) {
+        const unit = parseInt(unitStr);
+        // Equal weight per challenge within the unit
+        const weightPerChallenge = 1 / challenges.length;
+        result[unit] = challenges.map(c => ({ id: c.id, weight: weightPerChallenge }));
+    }
+    return result;
+}
+
+// Unit weights for final score (out of 100)
+const UNIT_WEIGHTS: Record<number, number> = {
+    1: 30, // 30 pts for Unit 1
+    2: 40, // 40 pts for Unit 2 (has 5 challenges: maxwell, faraday, poynting, snell, fresnel)
+    3: 15, // 15 pts for Unit 3 (salto-cuantico)
+    4: 15, // 15 pts for Unit 4 (nanophotonic)
+};
+
 export async function GET(request: Request) {
     try {
         const isAdmin = await verifyAdmin(request);
@@ -29,10 +56,10 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Unauthorized or Forbidden' }, { status: 403 });
         }
 
-        const supabase = supabaseServer;
+        const db = createServiceClient();
 
         // Fetch all students and their progress
-        const { data: students, error: studentsError } = await supabase
+        const { data: students, error: studentsError } = await db
             .from('profiles')
             .select(`
                 id,
@@ -46,26 +73,25 @@ export async function GET(request: Request) {
                 progress (
                     challenge_id,
                     status,
-                    best_score
+                    best_score,
+                    xp_earned
                 )
             `)
             .eq('role', 'student');
 
         if (studentsError) throw studentsError;
 
-        // Weights for the "100 App Points"
-        // U1 (30 pts): Lorentz (10), Ion Pilot (10), SMES Forge (10)
-        // U2 (30 pts): Maxwell (30)
-        // U3 (15 pts): Quantum (15)
-        // U4 (25 pts): Nanophotonic (25)
+        const challengesByUnit = getChallengesByUnit();
+        const totalChallenges = CHALLENGES.length;
 
+        // Build unit names for radar
+        const unitNumbers = Object.keys(challengesByUnit).map(Number).sort();
         const responseData = {
-            globalCompetencies: [
-                { subject: 'Unidad I', A: 0, fullMark: 100 },
-                { subject: 'Unidad II', A: 0, fullMark: 100 },
-                { subject: 'Unidad III', A: 0, fullMark: 100 },
-                { subject: 'Unidad IV', A: 0, fullMark: 100 },
-            ],
+            globalCompetencies: unitNumbers.map(u => ({
+                subject: `Unidad ${u}`,
+                A: 0,
+                fullMark: 100,
+            })),
             students: [] as any[]
         };
 
@@ -73,35 +99,47 @@ export async function GET(request: Request) {
             return NextResponse.json(responseData);
         }
 
-        let globalU1 = 0, globalU2 = 0, globalU3 = 0, globalU4 = 0;
+        const globalUnitScores: Record<number, number> = {};
+        unitNumbers.forEach(u => { globalUnitScores[u] = 0; });
 
         for (const student of students) {
             const p = student.progress || [];
             const getScore = (cid: string) => {
                 const prog = p.find((x: any) => x.challenge_id === cid);
-                return prog?.best_score || 0; // 0 to 100
+                return prog?.best_score || 0;
             };
             const isCompleted = (cid: string) => {
                 const prog = p.find((x: any) => x.challenge_id === cid);
                 return prog?.status === 'completed';
             };
 
-            const sLorentz = getScore('lorentz');
-            const sIon = getScore('ion-pilot');
-            const sForge = getScore('smes-forge');
-            const sMaxwell = getScore('maxwell');
-            const sQuantum = getScore('quantum');
-            const sNano = getScore('nanophotonic');
+            // Count total completed challenges
+            let totalComplete = 0;
+            CHALLENGES.forEach(c => {
+                if (isCompleted(c.id)) totalComplete++;
+            });
 
-            const u1Complete = (isCompleted('lorentz') ? 1 : 0) + (isCompleted('ion-pilot') ? 1 : 0) + (isCompleted('smes-forge') ? 1 : 0);
-            const totalComplete = u1Complete + (isCompleted('maxwell') ? 1 : 0) + (isCompleted('quantum') ? 1 : 0) + (isCompleted('nanophotonic') ? 1 : 0);
+            // Calculate points per unit (each unit contributes its weight to 100)
+            const unitPoints: Record<number, number> = {};
+            let appPoints = 0;
 
-            const u1Points = (sLorentz * 0.10) + (sIon * 0.10) + (sForge * 0.10); // max 30
-            const u2Points = (sMaxwell * 0.30); // max 30
-            const u3Points = (sQuantum * 0.15); // max 15
-            const u4Points = (sNano * 0.25); // max 25
+            for (const unit of unitNumbers) {
+                const challenges = challengesByUnit[unit];
+                const unitWeight = UNIT_WEIGHTS[unit] || 0;
 
-            const appPoints = u1Points + u2Points + u3Points + u4Points; // max 100
+                // Average score across all challenges in this unit, weighted equally
+                let unitAvgScore = 0;
+                for (const ch of challenges) {
+                    unitAvgScore += getScore(ch.id) * ch.weight;
+                }
+
+                const pts = (unitAvgScore / 100) * unitWeight;
+                unitPoints[unit] = pts;
+                appPoints += pts;
+
+                // For radar: how much of this unit is "completed" (0-100%)
+                globalUnitScores[unit] += unitAvgScore;
+            }
 
             const p1 = student.parcial1_score || 0;
             const p2 = student.parcial2_score || 0;
@@ -109,12 +147,7 @@ export async function GET(request: Request) {
 
             const finalNote100 = (parcialAvg100 * 0.5) + (appPoints * 0.5);
 
-            globalU1 += (u1Points / 30) * 100;
-            globalU2 += (u2Points / 30) * 100;
-            globalU3 += (u3Points / 15) * 100;
-            globalU4 += (u4Points / 25) * 100;
-
-            const totalProgressPercent = (totalComplete / 6) * 100;
+            const totalProgressPercent = (totalComplete / totalChallenges) * 100;
             const isPromoting = parcialAvg100 >= 70 && appPoints >= 70;
 
             responseData.students.push({
@@ -124,22 +157,20 @@ export async function GET(request: Request) {
                 p1,
                 p2,
                 parcialAvg100,
-                appPoints,
-                finalNote100,
-                totalProgressPercent,
-                u1Points,
-                u2Points,
-                u3Points,
-                u4Points,
+                appPoints: Number(appPoints.toFixed(1)),
+                finalNote100: Number(finalNote100.toFixed(1)),
+                totalProgressPercent: Number(totalProgressPercent.toFixed(1)),
+                totalComplete,
+                totalChallenges,
+                ...Object.fromEntries(unitNumbers.map(u => [`u${u}Points`, Number(unitPoints[u].toFixed(1))])),
                 isPromoting
             });
         }
 
         const N = students.length;
-        responseData.globalCompetencies[0].A = Math.round(globalU1 / N);
-        responseData.globalCompetencies[1].A = Math.round(globalU2 / N);
-        responseData.globalCompetencies[2].A = Math.round(globalU3 / N);
-        responseData.globalCompetencies[3].A = Math.round(globalU4 / N);
+        unitNumbers.forEach((u, idx) => {
+            responseData.globalCompetencies[idx].A = Math.round(globalUnitScores[u] / N);
+        });
 
         return NextResponse.json(responseData);
 

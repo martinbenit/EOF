@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import AuthGuard from '@/components/auth/AuthGuard';
+import { CHALLENGES } from '@/lib/challenges';
 import styles from './page.module.css';
 
 interface LeaderboardEntry {
@@ -13,6 +14,7 @@ interface LeaderboardEntry {
     xp: number;
     level: number;
     challenges: number;
+    totalChallenges: number;
     badge: string;
 }
 
@@ -148,7 +150,7 @@ export default function LeaderboardPage() {
                                                 <td>
                                                     <span className="badge badge-cyan">Lvl {entry.level}</span>
                                                 </td>
-                                                <td className={styles.challengeCell}>{entry.challenges}/4</td>
+                                                <td className={styles.challengeCell}>{entry.challenges}/{entry.totalChallenges || CHALLENGES.length}</td>
                                                 <td className={styles.xpCell}>{entry.xp}</td>
                                                 <td>
                                                     <div className={styles.progressBarSmall}>
