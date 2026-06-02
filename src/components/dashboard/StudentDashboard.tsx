@@ -23,9 +23,9 @@ const statusConfig: Record<string, { label: string; className: string }> = {
  * - Other units: sequential unlock — first challenge available, rest unlock when previous is completed
  */
 function computeChallengeStatuses(
-    progressMap: Record<string, { status: string; xpEarned: number; bestScore: number | null }>
-): Record<string, { status: string; xpEarned: number; bestScore: number | null }> {
-    const result: Record<string, { status: string; xpEarned: number; bestScore: number | null }> = {};
+    progressMap: Record<string, { status: string; xpEarned: number; bestScore: number | null; attempts?: number }>
+): Record<string, { status: string; xpEarned: number; bestScore: number | null; attempts?: number }> {
+    const result: Record<string, { status: string; xpEarned: number; bestScore: number | null; attempts?: number }> = {};
 
     // Group challenges by unit
     const unitGroups: Record<number, typeof CHALLENGES> = {};
@@ -44,7 +44,7 @@ function computeChallengeStatuses(
                 if (prog && (prog.status === 'completed' || prog.status === 'in_progress')) {
                     result[c.id] = prog;
                 } else {
-                    result[c.id] = prog || { status: 'available', xpEarned: 0, bestScore: null };
+                    result[c.id] = prog || { status: 'available', xpEarned: 0, bestScore: null, attempts: 0 };
                 }
             });
         } else {
@@ -57,10 +57,10 @@ function computeChallengeStatuses(
                     previousCompleted = true;
                 } else if (previousCompleted) {
                     // This challenge is available (previous was completed or it's the first)
-                    result[c.id] = prog || { status: 'available', xpEarned: 0, bestScore: null };
+                    result[c.id] = prog || { status: 'available', xpEarned: 0, bestScore: null, attempts: 0 };
                     previousCompleted = false; // next ones should be locked unless this one is completed
                 } else {
-                    result[c.id] = { status: 'locked', xpEarned: 0, bestScore: null };
+                    result[c.id] = { status: 'locked', xpEarned: 0, bestScore: null, attempts: 0 };
                 }
             });
         }
@@ -77,7 +77,7 @@ export default function StudentDashboard({ profile, user }: { profile: UserProfi
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const [progressData, setProgressData] = useState<Record<string, { status: string; xpEarned: number; bestScore: number | null }>>({});
+    const [progressData, setProgressData] = useState<Record<string, { status: string; xpEarned: number; bestScore: number | null; attempts?: number }>>({});
     const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>([]);
     const [leaderboardRes, setLeaderboardRes] = useState<any[]>([]);
     const [loadingData, setLoadingData] = useState(true);
@@ -92,7 +92,7 @@ export default function StudentDashboard({ profile, user }: { profile: UserProfi
                 const pRes = await fetch('/api/progress', { headers });
                 const pData = await pRes.json();
 
-                const rawProgMap: Record<string, { status: string; xpEarned: number; bestScore: number | null }> = {};
+                const rawProgMap: Record<string, { status: string; xpEarned: number; bestScore: number | null; attempts?: number }> = {};
 
                 if (Array.isArray(pData)) {
                     pData.forEach(row => {
@@ -100,6 +100,7 @@ export default function StudentDashboard({ profile, user }: { profile: UserProfi
                             status: row.status,
                             xpEarned: row.xp_earned,
                             bestScore: row.best_score,
+                            attempts: row.attempts,
                         };
                     });
                 }
@@ -121,7 +122,7 @@ export default function StudentDashboard({ profile, user }: { profile: UserProfi
                 // Fetch leaderboard
                 const lRes = await fetch('/api/leaderboard', { headers });
                 const lData = await lRes.json();
-                setLeaderboardRes(lData.slice(0, 5));
+                setLeaderboardRes(lData);
             } catch (error) {
                 console.error('Failed fetching DB data:', error);
             } finally {
@@ -139,8 +140,9 @@ export default function StudentDashboard({ profile, user }: { profile: UserProfi
     // Compute dynamic stats
     const completedCount = Object.values(progressData).filter(p => p.status === 'completed').length;
     const totalChallenges = CHALLENGES.length;
-    const totalAttempts = Object.values(progressData).reduce((sum, p) => sum + (p.bestScore !== null ? 1 : 0), 0);
-    const myRank = leaderboardRes.findIndex(e => e.id === profile.id) + 1;
+    const totalAttempts = Object.values(progressData).reduce((sum, p) => sum + (p.attempts || 0), 0);
+    const userInLeaderboard = leaderboardRes.find(e => e.id === profile.id);
+    const myRank = userInLeaderboard ? userInLeaderboard.rank : 0;
 
     const handleSaveName = async () => {
         if (!editName.trim()) return;
@@ -455,7 +457,7 @@ export default function StudentDashboard({ profile, user }: { profile: UserProfi
                             <div className={styles.leaderboardList}>
                                 {loadingData ? (
                                     <div style={{ color: 'var(--text-secondary)', padding: '12px 0' }}>Cargando ranking...</div>
-                                ) : leaderboardRes.map((entry) => (
+                                ) : leaderboardRes.slice(0, 5).map((entry) => (
                                     <div
                                         key={entry.rank}
                                         className={styles.leaderboardRow}
