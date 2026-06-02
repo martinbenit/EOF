@@ -135,6 +135,19 @@ export const CHALLENGES: Challenge[] = [
         color: '#c8b4ff',
         glowColor: 'rgba(200, 180, 255, 0.3)',
     },
+    {
+        id: 'avalon',
+        unit: 4,
+        title: 'Proyecto Ávalon',
+        subtitle: 'La Redención a Nanoescala',
+        description:
+            'Una campaña de 4 niveles donde usarás plasmónica, cristales fotónicos, metamateriales y terapia fototérmica para detectar y neutralizar un virus letal. Dominá la nanofotónica para salvar a la humanidad.',
+        maxXp: 800,
+        unlockLevel: 1,
+        icon: '🧬',
+        color: '#00f0ff',
+        glowColor: 'rgba(0, 240, 255, 0.3)',
+    },
 ];
 
 export function getChallengeById(id: string): Challenge | undefined {

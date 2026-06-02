@@ -68,6 +68,7 @@ export const CHALLENGE_BASE_XP: Record<ChallengeId, number> = {
     'poynting': 200,
     'snell': 250,
     'fresnel': 150,
+    'avalon': 300,
 };
 
 export const CHALLENGE_MAX_BONUS: Record<ChallengeId, number> = {
@@ -82,6 +83,7 @@ export const CHALLENGE_MAX_BONUS: Record<ChallengeId, number> = {
     'poynting': 200,
     'snell': 250,
     'fresnel': 200,
+    'avalon': 350,
 };
 
 export function calculateChallengeResult(
@@ -228,6 +230,13 @@ export const ACHIEVEMENT_DEFINITIONS: Achievement[] = [
         description: 'Diseñaste la bobina SMES con eficiencia perfecta',
         icon: '🔋',
         xpReward: 100,
+    },
+    {
+        key: 'avalon_master',
+        title: 'Redentor Nanofotónico',
+        description: 'Completaste Proyecto Ávalon con score perfecto',
+        icon: '🧬',
+        xpReward: 150,
     },
 ];
 

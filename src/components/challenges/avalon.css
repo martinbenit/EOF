@@ -1,0 +1,1082 @@
+/* ============================================
+   PROYECTO ÁVALON — Holographic Terminal CSS
+   Sci-Fi Retro / Nanotech aesthetic
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+/* ---- Holographic Container ---- */
+.ava-container {
+    width: 100%;
+    min-height: 600px;
+    font-family: 'Share Tech Mono', monospace;
+    color: #e0ffff;
+    position: relative;
+}
+
+.ava-crt {
+    position: relative;
+    background: #0a0a0f;
+    border: 2px solid #00f0ff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow:
+        inset 0 0 80px rgba(0, 240, 255, 0.03),
+        0 0 20px rgba(0, 240, 255, 0.15),
+        0 0 60px rgba(0, 240, 255, 0.05);
+}
+
+/* CRT Scanlines */
+.ava-crt::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 240, 255, 0.03) 0px,
+        rgba(0, 240, 255, 0.03) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+    pointer-events: none;
+    z-index: 100;
+}
+
+/* Vignette */
+.ava-crt::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(
+        ellipse at center,
+        transparent 60%,
+        rgba(0, 0, 0, 0.5) 100%
+    );
+    pointer-events: none;
+    z-index: 101;
+}
+
+/* ---- HUD Header ---- */
+.ava-hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    background: linear-gradient(180deg, rgba(0, 240, 255, 0.08) 0%, rgba(0, 0, 0, 0.9) 100%);
+    border-bottom: 2px solid #00f0ff;
+    position: relative;
+    z-index: 50;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ava-hud-title {
+    font-size: 11px;
+    color: #00f0ff;
+    text-shadow: 0 0 10px #00f0ff, 0 0 30px #00f0ff;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
+.ava-hud-stats {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.ava-hud-stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ava-hud-label {
+    font-size: 9px;
+    color: #5a8a8a;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.ava-hud-value {
+    font-size: 14px;
+    color: #e0ffff;
+    text-shadow: 0 0 8px rgba(224, 255, 255, 0.5);
+}
+
+.ava-hud-divider {
+    color: #1a3a3a;
+    font-size: 16px;
+}
+
+.ava-xp-glow {
+    color: #ffd700 !important;
+    text-shadow: 0 0 8px #ffd700, 0 0 20px #ffa500 !important;
+}
+
+/* ---- Stage Bar ---- */
+.ava-stage-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    background: rgba(0, 240, 255, 0.03);
+    border-bottom: 1px solid rgba(0, 240, 255, 0.15);
+    position: relative;
+    z-index: 50;
+    flex-wrap: wrap;
+}
+
+.ava-stage-icon {
+    font-size: 20px;
+}
+
+.ava-stage-name {
+    font-size: 10px;
+    color: #39ff14;
+    text-shadow: 0 0 8px #39ff14;
+    flex: 1;
+    letter-spacing: 1px;
+}
+
+.ava-hint-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 6px 14px;
+    background: rgba(255, 215, 0, 0.08);
+    color: #ffd700;
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    cursor: pointer;
+    text-shadow: 0 0 4px #ffd700;
+    transition: all 0.3s;
+    letter-spacing: 1px;
+}
+
+.ava-hint-btn:hover {
+    background: rgba(255, 215, 0, 0.15);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    border-color: #ffd700;
+}
+
+/* ---- Hint Menu ---- */
+.ava-hint-menu {
+    position: relative;
+    z-index: 90;
+    padding: 20px;
+    background: linear-gradient(180deg, rgba(255, 215, 0, 0.05) 0%, rgba(0, 0, 0, 0.95) 100%);
+    border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.ava-hint-menu-title {
+    font-size: 12px;
+    color: #ffd700;
+    text-shadow: 0 0 10px #ffd700;
+    margin-bottom: 16px;
+    text-align: center;
+    letter-spacing: 2px;
+}
+
+.ava-hint-item {
+    margin-bottom: 12px;
+    padding: 12px;
+    background: rgba(255, 215, 0, 0.03);
+    border: 1px solid rgba(255, 215, 0, 0.15);
+    border-radius: 6px;
+}
+
+.ava-hint-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    color: #b8960a;
+    margin-bottom: 8px;
+}
+
+.ava-hint-cost {
+    color: #ff8800;
+    text-shadow: 0 0 4px #ff8800;
+}
+
+.ava-hint-text {
+    font-size: 11px;
+    color: #ffe566;
+    line-height: 1.8;
+    padding: 10px;
+    background: rgba(255, 215, 0, 0.05);
+    border-left: 3px solid #ffd700;
+    border-radius: 0 4px 4px 0;
+}
+
+.ava-btn-hint-buy {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 8px 14px;
+    width: 100%;
+    background: rgba(255, 215, 0, 0.08);
+    color: #ffd700;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    cursor: pointer;
+    transition: all 0.3s;
+    border-radius: 4px;
+}
+
+.ava-btn-hint-buy:hover:not(.ava-btn-disabled) {
+    background: rgba(255, 215, 0, 0.15);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+}
+
+.ava-btn-disabled {
+    opacity: 0.35;
+    cursor: not-allowed !important;
+    color: #555;
+}
+
+.ava-btn-close-hints {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 8px 14px;
+    width: 100%;
+    margin-top: 10px;
+    background: transparent;
+    color: #5a8a8a;
+    border: 1px solid #1a3a3a;
+    cursor: pointer;
+    transition: all 0.3s;
+    border-radius: 4px;
+}
+
+.ava-btn-close-hints:hover {
+    color: #e0ffff;
+    border-color: #00f0ff;
+}
+
+/* ---- Stage Content ---- */
+.ava-stage-content {
+    position: relative;
+    z-index: 10;
+    min-height: 500px;
+}
+
+/* ---- Intro / Briefing Panel ---- */
+.ava-intro-panel {
+    padding: 24px 20px;
+    background: linear-gradient(180deg, rgba(0, 240, 255, 0.04) 0%, transparent 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ava-intro-title {
+    font-size: 12px;
+    color: #00f0ff;
+    text-shadow: 0 0 10px #00f0ff;
+    text-align: center;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+}
+
+/* ---- Dialog Boxes ---- */
+.ava-dialog-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid;
+    border-radius: 8px;
+    animation: ava-dialog-in 0.4s ease;
+}
+
+@keyframes ava-dialog-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.ava-dialog-box-small {
+    padding: 10px;
+}
+
+.ava-dialog-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.ava-dialog-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.ava-dialog-name {
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.ava-dialog-text {
+    font-size: 11px;
+    color: #b0d0d0;
+    line-height: 1.8;
+    margin: 0;
+}
+
+/* ---- Victory Modal ---- */
+.ava-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+}
+
+.ava-modal {
+    background: linear-gradient(180deg, #0d1a2a 0%, #060a10 100%);
+    border: 2px solid #00f0ff;
+    padding: 32px;
+    text-align: center;
+    max-width: 520px;
+    width: 100%;
+    position: relative;
+    border-radius: 12px;
+    box-shadow:
+        0 0 40px rgba(0, 240, 255, 0.25),
+        inset 0 0 40px rgba(0, 240, 255, 0.03),
+        0 0 100px rgba(0, 240, 255, 0.1);
+    animation: ava-modal-in 0.5s ease;
+}
+
+@keyframes ava-modal-in {
+    from { transform: scale(0.7) translateY(30px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.ava-modal-stars {
+    font-size: 22px;
+    color: #ffd700;
+    text-shadow: 0 0 12px #ffd700;
+    margin-bottom: 16px;
+    letter-spacing: 10px;
+}
+
+.ava-modal-title {
+    font-size: 14px;
+    color: #00f0ff;
+    text-shadow: 0 0 15px #00f0ff;
+    margin-bottom: 6px;
+    letter-spacing: 2px;
+}
+
+.ava-modal-subtitle {
+    font-size: 10px;
+    color: #39ff14;
+    text-shadow: 0 0 8px #39ff14;
+    margin-bottom: 16px;
+    letter-spacing: 1px;
+}
+
+.ava-modal-message {
+    font-size: 11px;
+    color: #b0d0d0;
+    line-height: 1.8;
+    margin-bottom: 20px;
+}
+
+.ava-modal-xp {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: rgba(255, 215, 0, 0.06);
+    border: 1px solid rgba(255, 215, 0, 0.25);
+    border-radius: 8px;
+}
+
+.ava-modal-xp-label {
+    font-size: 9px;
+    color: #5a8a8a;
+    letter-spacing: 2px;
+}
+
+.ava-modal-xp-value {
+    font-size: 24px;
+    color: #ffd700;
+    text-shadow: 0 0 15px #ffd700, 0 0 30px #ff8800;
+}
+
+/* ---- Victory Dialog ---- */
+.ava-victory-dialog {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+    text-align: left;
+}
+
+.ava-btn-dialog-next {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 6px 16px;
+    background: transparent;
+    color: #00f0ff;
+    border: 1px solid rgba(0, 240, 255, 0.3);
+    cursor: pointer;
+    transition: all 0.3s;
+    border-radius: 4px;
+    align-self: flex-end;
+}
+
+.ava-btn-dialog-next:hover {
+    background: rgba(0, 240, 255, 0.1);
+    border-color: #00f0ff;
+}
+
+/* ---- Holographic Buttons ---- */
+.ava-btn-holo {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 12px 28px;
+    background: linear-gradient(180deg, rgba(0, 240, 255, 0.15) 0%, rgba(0, 240, 255, 0.05) 100%);
+    color: #00f0ff;
+    border: 2px solid #00f0ff;
+    cursor: pointer;
+    text-shadow: 0 0 8px #00f0ff;
+    transition: all 0.3s;
+    letter-spacing: 2px;
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+}
+
+.ava-btn-holo::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        45deg,
+        transparent 40%,
+        rgba(0, 240, 255, 0.1) 50%,
+        transparent 60%
+    );
+    animation: ava-shimmer 3s ease-in-out infinite;
+}
+
+@keyframes ava-shimmer {
+    0% { transform: translateX(-100%) rotate(45deg); }
+    100% { transform: translateX(100%) rotate(45deg); }
+}
+
+.ava-btn-holo:hover {
+    background: linear-gradient(180deg, rgba(0, 240, 255, 0.25) 0%, rgba(0, 240, 255, 0.1) 100%);
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.35);
+    transform: scale(1.02);
+}
+
+.ava-btn-green {
+    background: linear-gradient(180deg, rgba(57, 255, 20, 0.15) 0%, rgba(57, 255, 20, 0.05) 100%);
+    color: #39ff14;
+    border-color: #39ff14;
+    text-shadow: 0 0 8px #39ff14;
+}
+
+.ava-btn-green:hover {
+    background: linear-gradient(180deg, rgba(57, 255, 20, 0.25) 0%, rgba(57, 255, 20, 0.1) 100%);
+    box-shadow: 0 0 25px rgba(57, 255, 20, 0.35);
+}
+
+/* ---- Blinking Animations ---- */
+.ava-blink {
+    animation: ava-blink-anim 0.8s infinite;
+}
+
+@keyframes ava-blink-anim {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+}
+
+.ava-blink-slow {
+    animation: ava-blink-slow-anim 2s ease-in-out infinite;
+}
+
+@keyframes ava-blink-slow-anim {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* ---- Glitch Effect ---- */
+.ava-glitch {
+    animation: ava-glitch-effect 0.3s infinite;
+}
+
+@keyframes ava-glitch-effect {
+    0% { filter: none; text-shadow: 0 0 10px #00f0ff; }
+    20% { filter: hue-rotate(90deg); text-shadow: -2px 0 #ff0040, 2px 0 #00f0ff; }
+    40% { filter: none; text-shadow: 0 0 10px #00f0ff; }
+    60% { filter: hue-rotate(-60deg); text-shadow: 2px 0 #39ff14, -2px 0 #ff0040; }
+    80% { filter: none; text-shadow: 0 0 10px #00f0ff; }
+    100% { filter: none; text-shadow: 0 0 10px #00f0ff; }
+}
+
+/* Holographic border animation */
+@keyframes ava-holo-border {
+    0% { border-color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
+    33% { border-color: #39ff14; box-shadow: 0 0 15px rgba(57, 255, 20, 0.2); }
+    66% { border-color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
+    100% { border-color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
+}
+
+/* ---- Completed Screen ---- */
+.ava-completed-screen {
+    padding: 40px 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    min-height: 500px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.ava-completed-title {
+    font-size: 20px;
+    color: #ffd700;
+    text-shadow: 0 0 20px #ffd700, 0 0 40px #ff8800;
+    margin-bottom: 8px;
+}
+
+.ava-completed-subtitle {
+    font-size: 11px;
+    color: #00f0ff;
+    text-shadow: 0 0 10px #00f0ff;
+    margin-bottom: 32px;
+    letter-spacing: 2px;
+}
+
+.ava-badge-container {
+    position: relative;
+    margin-bottom: 24px;
+}
+
+.ava-badge-glow {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(0, 240, 255, 0.3), transparent 70%);
+    border-radius: 50%;
+    animation: ava-badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes ava-badge-pulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+    50% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+}
+
+.ava-badge {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 20px;
+    background: rgba(0, 240, 255, 0.05);
+    border: 2px solid #00f0ff;
+    border-radius: 50%;
+    width: 100px; height: 100px;
+    justify-content: center;
+}
+
+.ava-badge-icon {
+    font-size: 28px;
+}
+
+.ava-badge-text {
+    font-size: 6px;
+    color: #00f0ff;
+    text-shadow: 0 0 6px #00f0ff;
+    text-align: center;
+    letter-spacing: 1px;
+}
+
+.ava-grade-display {
+    margin-bottom: 24px;
+}
+
+.ava-grade-label {
+    font-size: 9px;
+    color: #5a8a8a;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+}
+
+.ava-grade-value {
+    font-size: 48px;
+    font-weight: bold;
+}
+
+.ava-final-score {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 32px;
+    padding: 20px 48px;
+    background: rgba(255, 215, 0, 0.05);
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    border-radius: 8px;
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.1);
+}
+
+.ava-final-score-label {
+    font-size: 9px;
+    color: #5a8a8a;
+    letter-spacing: 2px;
+}
+
+.ava-final-score-value {
+    font-size: 32px;
+    color: #ffd700;
+    text-shadow: 0 0 20px #ffd700, 0 0 40px #ff8800;
+}
+
+.ava-completed-stages {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 420px;
+    margin-bottom: 32px;
+}
+
+.ava-completed-stage-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: rgba(0, 240, 255, 0.03);
+    border: 1px solid rgba(0, 240, 255, 0.1);
+    border-radius: 6px;
+}
+
+.ava-completed-stage-icon {
+    font-size: 16px;
+}
+
+.ava-completed-stage-name {
+    font-size: 10px;
+    color: #8ab0b0;
+    flex: 1;
+    text-align: left;
+}
+
+.ava-completed-xp {
+    font-size: 10px;
+    color: #ffd700;
+    text-shadow: 0 0 4px #ffd700;
+}
+
+.ava-completed-check {
+    font-size: 12px;
+    color: #39ff14;
+    text-shadow: 0 0 6px #39ff14;
+}
+
+.ava-final-stats {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.ava-final-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 20px;
+    background: rgba(0, 240, 255, 0.03);
+    border: 1px solid rgba(0, 240, 255, 0.1);
+    border-radius: 6px;
+}
+
+.ava-final-stat-label {
+    font-size: 8px;
+    color: #5a8a8a;
+    letter-spacing: 1px;
+}
+
+.ava-final-stat-value {
+    font-size: 16px;
+    color: #e0ffff;
+}
+
+.ava-outro-narrative {
+    max-width: 420px;
+    width: 100%;
+    margin-bottom: 24px;
+}
+
+/* ---- Save Status ---- */
+.ava-save-status {
+    font-size: 10px;
+    padding: 8px;
+    margin-bottom: 16px;
+    border-radius: 4px;
+}
+
+.ava-save-error {
+    color: #ff4444;
+    background: rgba(255, 0, 0, 0.08);
+    border: 1px solid rgba(255, 0, 0, 0.2);
+}
+
+.ava-save-ok {
+    color: #39ff14;
+    background: rgba(57, 255, 20, 0.05);
+    border: 1px solid rgba(57, 255, 20, 0.15);
+}
+
+/* ---- Fireworks ---- */
+.ava-fireworks {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.ava-firework-particle {
+    position: absolute;
+    width: var(--size, 4px);
+    height: var(--size, 4px);
+    background: var(--color, #00f0ff);
+    left: var(--x, 50%);
+    top: var(--y, 50%);
+    border-radius: 50%;
+    animation: ava-firework-burst 2.5s var(--delay, 0s) infinite;
+    box-shadow: 0 0 8px var(--color, #00f0ff);
+}
+
+@keyframes ava-firework-burst {
+    0% { transform: scale(0); opacity: 1; }
+    40% { transform: scale(1.5); opacity: 0.8; }
+    100% { transform: scale(0); opacity: 0; }
+}
+
+/* ---- Stage 1 Specific: Centinela de Sangre ---- */
+.ava-s1-game {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.ava-s1-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: rgba(0, 0, 0, 0.5);
+    border-bottom: 1px solid rgba(0, 240, 255, 0.1);
+    flex-wrap: wrap;
+}
+
+.ava-s1-toolbar-label {
+    font-size: 9px;
+    color: #5a8a8a;
+    letter-spacing: 1px;
+    margin-right: 4px;
+}
+
+.ava-s1-tool-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 8px 14px;
+    background: rgba(255, 215, 0, 0.06);
+    color: #d4a800;
+    border: 1px solid rgba(255, 215, 0, 0.25);
+    cursor: pointer;
+    transition: all 0.3s;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ava-s1-tool-btn:hover {
+    background: rgba(255, 215, 0, 0.12);
+    border-color: #ffd700;
+    color: #ffd700;
+}
+
+.ava-s1-tool-btn.active {
+    background: rgba(255, 215, 0, 0.15);
+    border-color: #ffd700;
+    color: #ffd700;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+    text-shadow: 0 0 4px #ffd700;
+}
+
+.ava-s1-tool-btn.tool-clear {
+    color: #ff4444;
+    border-color: rgba(255, 68, 68, 0.25);
+    background: rgba(255, 68, 68, 0.06);
+}
+
+.ava-s1-tool-btn.tool-clear:hover {
+    background: rgba(255, 68, 68, 0.12);
+    border-color: #ff4444;
+}
+
+.ava-s1-tool-btn.tool-virus {
+    color: #ff3366;
+    border-color: rgba(255, 51, 102, 0.3);
+    background: rgba(255, 51, 102, 0.06);
+}
+
+.ava-s1-tool-btn.tool-virus:hover, .ava-s1-tool-btn.tool-virus.active {
+    background: rgba(255, 51, 102, 0.15);
+    border-color: #ff3366;
+    box-shadow: 0 0 10px rgba(255, 51, 102, 0.2);
+}
+
+.ava-s1-canvas-wrap {
+    position: relative;
+    width: 100%;
+    background: #050508;
+    overflow: hidden;
+    cursor: crosshair;
+}
+
+.ava-s1-canvas-wrap.dragging {
+    cursor: grabbing;
+}
+
+.ava-s1-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.ava-s1-bottom-panel {
+    padding: 14px 20px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.8) 100%);
+    border-top: 1px solid rgba(0, 240, 255, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.ava-s1-kmeter {
+    flex: 1;
+    min-width: 200px;
+}
+
+.ava-s1-kmeter-label {
+    font-size: 9px;
+    color: #5a8a8a;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.ava-s1-kmeter-value {
+    color: #00f0ff;
+    text-shadow: 0 0 6px #00f0ff;
+    font-size: 12px;
+}
+
+.ava-s1-kmeter-bar {
+    width: 100%;
+    height: 16px;
+    background: #0a0a14;
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+
+.ava-s1-kmeter-fill {
+    height: 100%;
+    transition: width 0.4s ease, background 0.4s ease;
+    border-radius: 2px;
+    position: relative;
+}
+
+.ava-s1-kmeter-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 4px; height: 100%;
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.ava-s1-kmeter-fill.k-low {
+    background: linear-gradient(90deg, #1a3a00, #39ff14);
+    box-shadow: 0 0 8px rgba(57, 255, 20, 0.3);
+}
+
+.ava-s1-kmeter-fill.k-mid {
+    background: linear-gradient(90deg, #3a3a00, #ffd700);
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+}
+
+.ava-s1-kmeter-fill.k-high {
+    background: linear-gradient(90deg, #003a3a, #00f0ff);
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+}
+
+.ava-s1-kmeter-fill.k-max {
+    background: linear-gradient(90deg, #00f0ff, #39ff14);
+    box-shadow: 0 0 16px rgba(0, 240, 255, 0.5), 0 0 30px rgba(57, 255, 20, 0.3);
+    animation: ava-kmeter-pulse 1s ease-in-out infinite;
+}
+
+@keyframes ava-kmeter-pulse {
+    0%, 100% { box-shadow: 0 0 16px rgba(0, 240, 255, 0.5); }
+    50% { box-shadow: 0 0 25px rgba(0, 240, 255, 0.8), 0 0 40px rgba(57, 255, 20, 0.5); }
+}
+
+.ava-s1-kmeter-marks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 7px;
+    color: #3a5a5a;
+    margin-top: 4px;
+    padding: 0 2px;
+}
+
+.ava-s1-status {
+    font-size: 10px;
+    color: #5a8a8a;
+    flex-shrink: 0;
+}
+
+.ava-s1-status.status-win {
+    color: #39ff14;
+    text-shadow: 0 0 8px #39ff14;
+    animation: ava-blink-slow-anim 1.5s ease-in-out infinite;
+}
+
+.ava-s1-info-row {
+    display: flex;
+    gap: 20px;
+    padding: 8px 20px;
+    font-size: 9px;
+    color: #5a8a8a;
+    background: rgba(0, 0, 0, 0.3);
+    border-top: 1px solid rgba(0, 240, 255, 0.05);
+    flex-wrap: wrap;
+}
+
+.ava-s1-info-item {
+    display: flex;
+    gap: 6px;
+}
+
+.ava-s1-info-value {
+    color: #00f0ff;
+}
+
+/* ---- Feedback Messages ---- */
+.ava-feedback {
+    padding: 10px 20px;
+    font-size: 10px;
+    text-align: center;
+    line-height: 1.8;
+}
+
+.ava-feedback-success {
+    color: #39ff14;
+    text-shadow: 0 0 6px #39ff14;
+    background: rgba(57, 255, 20, 0.05);
+    border-top: 1px solid rgba(57, 255, 20, 0.15);
+}
+
+.ava-feedback-warning {
+    color: #ffd700;
+    text-shadow: 0 0 4px #ffd700;
+    background: rgba(255, 215, 0, 0.05);
+    border-top: 1px solid rgba(255, 215, 0, 0.15);
+}
+
+.ava-feedback-info {
+    color: #00f0ff;
+    text-shadow: 0 0 4px #00f0ff;
+    background: rgba(0, 240, 255, 0.03);
+    border-top: 1px solid rgba(0, 240, 255, 0.1);
+}
+
+/* ---- Placeholder Stage ---- */
+.ava-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    padding: 40px;
+    gap: 20px;
+}
+
+.ava-placeholder-icon {
+    font-size: 48px;
+    opacity: 0.5;
+}
+
+.ava-placeholder-text {
+    font-size: 12px;
+    color: #5a8a8a;
+    text-align: center;
+    letter-spacing: 1px;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 700px) {
+    .ava-hud {
+        padding: 10px 14px;
+    }
+    .ava-hud-title {
+        font-size: 9px;
+        letter-spacing: 1px;
+    }
+    .ava-hud-value {
+        font-size: 12px;
+    }
+    .ava-modal {
+        padding: 24px 16px;
+    }
+    .ava-modal-title {
+        font-size: 12px;
+    }
+    .ava-s1-toolbar {
+        padding: 10px 14px;
+        gap: 6px;
+    }
+    .ava-s1-tool-btn {
+        font-size: 9px;
+        padding: 6px 10px;
+    }
+    .ava-s1-bottom-panel {
+        padding: 10px 14px;
+        gap: 12px;
+    }
+    .ava-completed-title {
+        font-size: 16px;
+    }
+    .ava-final-score-value {
+        font-size: 24px;
+    }
+}
